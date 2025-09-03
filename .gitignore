@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+*/dist/
+build/
+*/build/
+
+# Environment variables
+.env
+*/.env
+.env.local
+.env.production
+
+# Database
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+backend/data/
+
+# Uploads
+backend/uploads/
+uploads/
+
+# Logs
+*.log
+logs/
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
