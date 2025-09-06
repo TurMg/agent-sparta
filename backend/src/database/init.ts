@@ -3,9 +3,9 @@ import { promisify } from 'util';
 
 // Database connection configuration
 const dbConfig = {
-  host: process.env.DB_HOST || '10.62.160.37',
-  user: process.env.DB_USER || 'admapp', 
-  password: process.env.DB_PASSWORD || '4dm1N4Pp5!!',
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root', 
+  password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'agent-sparta',
   port: parseInt(process.env.DB_PORT || '3306'),
   charset: 'utf8mb4',

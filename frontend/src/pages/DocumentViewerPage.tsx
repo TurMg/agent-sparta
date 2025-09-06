@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import DocumentEditorUserFriendly from '@/components/DocumentEditorUserFriendly';
+import DocumentEditorMonaco from '@/components/DocumentEditorMonaco';
 import { documentsAPI } from '@/utils/api';
 import { Document } from '@/types';
 import { formatDateTime, formatCurrency } from '@/utils/format';
@@ -424,7 +424,7 @@ ${content}
         {isEditing && documentContent && (
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit Dokumen</h2>
-                    <DocumentEditorUserFriendly
+                    <DocumentEditorMonaco
           content={documentContent}
           onSave={saveDocumentContent}
         />
