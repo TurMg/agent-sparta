@@ -28,6 +28,7 @@ const DocumentViewerPage: React.FC = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [documentContent, setDocumentContent] = useState<string>("");
+  const [previewKey, setPreviewKey] = useState(0);
 
   useEffect(() => {
     if (id) {
@@ -42,42 +43,36 @@ const DocumentViewerPage: React.FC = () => {
       const response = await documentsAPI.getById(id);
       if (response.data.success) {
         const docData = response.data.data;
-        setDocument(docData);
 
-        // Set document content for editor
-        if (docData.content) {
-          setDocumentContent(docData.content);
-        } else if (docData.filePath) {
-          // Load from HTML file (not PDF)
+        // Jika konten dari API kosong tapi ada filePath, kita fetch manual
+        if (!docData.content && docData.filePath) {
+          console.log("Konten kosong, fetching dari file HTML...");
           const htmlPath = docData.filePath.replace(".pdf", ".html");
           try {
             const htmlResponse = await fetch(htmlPath);
             if (htmlResponse.ok) {
               const htmlContent = await htmlResponse.text();
-              // Extract body content for editing
-              const bodyMatch = htmlContent.match(
-                /<body[^>]*>([\s\S]*)<\/body>/i
-              );
-              if (bodyMatch) {
-                setDocumentContent(bodyMatch[1]);
-              } else {
-                setDocumentContent(htmlContent);
-              }
-            } else {
-              console.error("HTML file not found, creating from data");
-              setDocumentContent(generateEditableContent());
+              docData.content = htmlContent; // <-- SUNTIKKAN KONTEN KE DATA
             }
-          } catch (error) {
-            console.error("Error loading HTML content:", error);
-            setDocumentContent(generateEditableContent());
+          } catch (fetchError) {
+            console.error("Gagal fetch konten HTML:", fetchError);
           }
+        }
+
+        setDocument(docData); // State utama sekarang pasti punya konten
+
+        // Set document content untuk editor (jika ada)
+        if (docData.content) {
+          const bodyMatch = docData.content.match(
+            /<body[^>]*>([\s\S]*)<\/body>/i
+          );
+          setDocumentContent(bodyMatch ? bodyMatch[1] : docData.content);
         } else {
-          // Generate editable content from data
+          // Fallback jika semua gagal
           setDocumentContent(generateEditableContent());
         }
 
         if (docData.data) {
-          // Handle both string and object data
           try {
             const parsedData =
               typeof docData.data === "string"
@@ -86,7 +81,6 @@ const DocumentViewerPage: React.FC = () => {
             setDocumentData(parsedData);
           } catch (error) {
             console.error("Error parsing document data:", error);
-            console.log("Raw data:", docData.data);
             setDocumentData(null);
           }
         }
@@ -241,13 +235,20 @@ ${content}
       );
 
       if (response.data.success) {
-        setDocumentContent(content);
-        setDocument((prev) => (prev ? { ...prev, content: fullHTML } : null));
+        setDocument((prevDoc) => {
+          if (!prevDoc) return null;
+          return {
+            ...prevDoc,
+            content: fullHTML, // Paksa update konten dengan HTML yang baru
+          };
+        });
+        // setDocumentContent(content);
         toast.success("Dokumen berhasil disimpan");
+        setPreviewKey((prevKey) => prevKey + 1);
         setIsEditing(false);
 
         // Reload document to refresh preview
-        await loadDocument();
+        // await loadDocument();
       } else {
         toast.error("Gagal menyimpan dokumen");
       }
@@ -647,7 +648,9 @@ ${content}
 
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <iframe
-                    src={document.filePath.replace(".pdf", ".html")}
+                    // src={document.filePath.replace(".pdf", ".html")}
+                    key={previewKey}
+                    srcDoc={(document as any).content || ""}
                     className="w-full h-96"
                     title="Document Preview"
                     sandbox="allow-same-origin"
