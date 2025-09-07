@@ -183,19 +183,12 @@ const DocumentViewerPage: React.FC = () => {
 
         <p style="margin-top: 30px;">Hormat kami,</p>
 
-        <div style="display: flex; justify-content: space-between; margin-top: 80px;">
-          <div style="text-align: center; width: 200px;">
-            <div style="height: 80px; border-bottom: 1px solid #000; margin-bottom: 10px;"></div>
-            <p><strong>ttd</strong></p>
-            <br>
-            <p><strong>Nama AM</strong></p>
-            <p><strong>PT. Your Company</strong></p>
-          </div>
-          <div style="text-align: center; width: 200px;">
-            <div style="height: 80px; border-bottom: 1px solid #000; margin-bottom: 10px;"></div>
-            <p><strong>Tanda Tangan & Cap</strong></p>
-            <p><strong>${documentData.customerName}</strong></p>
-          </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+            <div style="text-align: center; width: 180px;">
+                <div style="height: 50px; border-bottom: 1px solid #000; margin-bottom: 8px;"></div>
+                <p><strong>Nama AM</strong></p>
+                <p><strong>PT. Your Company</strong></p>
+            </div>
         </div>
       </div>
     `;
