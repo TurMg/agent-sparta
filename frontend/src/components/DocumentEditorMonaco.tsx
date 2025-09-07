@@ -123,7 +123,7 @@ export default function DocumentEditorMonaco({
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Surat Penawaran Harga</title>
           <style>
-              body {
+            body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 15px;
@@ -299,16 +299,18 @@ export default function DocumentEditorMonaco({
 
       const { base64Data } = response.data;
 
+      let titleHTML = "";
+
+      if (signatureTitle && signatureTitle.trim() !== "") {
+        titleHTML = `<p style="text-transform: capitalize; text-align: center; align-content: center ; margin: 0; font-weight: bold; padding-top: 5px;">${signatureTitle}</p>`;
+      }
+
       // Blok HTML final untuk tanda tangan digital
       const finalSignatureHTML = `
       <div style="text-align: left; width: 180px; font-size: 11px; margin-top: -20px;">
           <img src="${base64Data}" alt="Signature for ${signatureName}" style="min-width: 180px; height: 60px; margin-bottom: 5px; align-content: center; justify-content: center;" />
           <p style="text-transform: capitalize; text-align: center; align-content: center ; margin: 0; font-weight: bold; padding-top: 5px; border-top: 1px solid #000;">${signatureName}</p>
-          ${
-            signatureTitle
-              ? `<p style="text-transform: capitalize; text-align: center; align-content: center ; margin: 0; font-weight: bold; padding-top: 5px;">${signatureTitle}</p>`
-              : ""
-          }
+          ${titleHTML}
           <p style="text-transform: capitalize; text-align: center; align-content: center ; margin: 0; font-weight: bold; padding-top: 5px;">PT. Telkom Indonesia</p>
           </div>
     `;
