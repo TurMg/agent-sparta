@@ -253,7 +253,6 @@ const SPH_TEMPLATE = `
         <div style="display: flex; justify-content: space-between; margin-top: 40px;">
             <div style="text-align: center; width: 180px;">
                 <div style="height: 50px; border-bottom: 1px solid #000; margin-bottom: 8px;"></div>
-                <p><strong>ttd</strong></p>
                 <p><strong>Nama AM</strong></p>
                 <p><strong>{{companyName}}</strong></p>
             </div>

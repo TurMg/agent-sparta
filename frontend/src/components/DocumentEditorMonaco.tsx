@@ -30,6 +30,7 @@ export default function DocumentEditorMonaco({
 
   const signatureRef = useRef<HTMLCanvasElement>(null);
   const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [signatureContext, setSignatureContext] =
     useState<CanvasRenderingContext2D | null>(null);
@@ -47,9 +48,19 @@ export default function DocumentEditorMonaco({
     setShowPreview(!showPreview);
   };
 
+  const handleAddSignatureClick = () => {
+    // Jika sedang dalam mode pratinjau, kembali ke editor terlebih dahulu
+    if (showPreview) {
+      setShowPreview(false);
+    }
+    // Kemudian, buka jendela tanda tangan
+    setShowSignaturePad(true);
+  };
+
   // Function to handle editor mount
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
 
     // Set language to HTML for better syntax highlighting
     monaco.editor.setModelLanguage(editor.getModel(), "html");
@@ -71,50 +82,13 @@ export default function DocumentEditorMonaco({
   const handleSave = () => {
     if (editorRef.current) {
       setIsSaving(true);
-
       try {
-        // Get content from Monaco Editor
-        let baseHTML = editorRef.current.getValue();
+        // Langsung ambil konten mentah dari editor
+        const rawHtmlContent = editorRef.current.getValue();
 
-        // CRITICAL: Always restore complete document structure to prevent styling loss
-        console.log("🔄 Restoring complete document structure...");
-        baseHTML = restoreCompleteDocumentStructure(baseHTML);
+        // Kirim konten mentah ini ke komponen induk untuk diproses
+        onSave(rawHtmlContent);
 
-        // Manually append signatures that were added
-        if (addedSignatures.length > 0) {
-          console.log(
-            "📝 Appending",
-            addedSignatures.length,
-            "signatures to document"
-          );
-
-          addedSignatures.forEach((sig, index) => {
-            console.log(`🖼️ Adding signature ${index + 1} with URL:`, sig.url);
-
-            const signatureHTML = `
-              <div style="margin-top: 20px; text-align: left;">
-                <p style="margin: 5px 0;"><strong>ttd</strong></p>
-                <img src="${
-                  sig.base64Data || `http://localhost:3001${sig.url}`
-                }" alt="Signature-${
-              sig.name
-            }" style="max-width: 200px; height: auto; margin: 5px 0; display: block;" />
-                <p style="margin: 5px 0;"><strong>${sig.name}</strong></p>
-                ${sig.title ? `<p style="margin: 5px 0;">${sig.title}</p>` : ""}
-              </div>
-            `;
-            baseHTML += signatureHTML;
-          });
-        }
-
-        console.log("💾 Final document HTML length:", baseHTML.length);
-        console.log("💾 Final includes images:", baseHTML.includes("<img"));
-        console.log(
-          "💾 Number of signatures included:",
-          addedSignatures.length
-        );
-
-        onSave(baseHTML);
         toast.success("Dokumen berhasil disimpan!");
       } catch (error) {
         console.error("❌ Error saving document:", error);
@@ -261,7 +235,7 @@ export default function DocumentEditorMonaco({
         }
         .signature-line {
             border-bottom: 1px solid #000;
-            margin: 30px 0 8px 0;
+            margin: 10px 0 8px 0;
         }
         .footer {
             margin-top: 20px;
@@ -292,110 +266,123 @@ export default function DocumentEditorMonaco({
   };
 
   const addSignature = async () => {
-    console.log("🖊️ Starting file-based signature addition process...");
-
-    if (!signatureRef.current) {
-      console.error("❌ Signature canvas not found");
-      alert("Error: Signature canvas tidak ditemukan");
+    if (!signatureRef.current || !editorRef.current || !monacoRef.current) {
+      alert("Editor atau canvas tanda tangan belum siap.");
       return;
     }
-
-    if (!editorRef.current) {
-      console.error("❌ Editor not found");
-      alert("Error: Editor tidak ditemukan");
-      return;
-    }
-
     if (!signatureName.trim()) {
-      console.error("❌ Signature name is required");
       alert("Silakan masukkan nama penandatangan");
       return;
     }
-
-    // Check if signature canvas is not empty
     if (isSignatureEmpty()) {
-      console.error("❌ Signature canvas is empty");
       alert("Silakan gambar tanda tangan terlebih dahulu");
       return;
     }
 
     try {
-      console.log("🎨 Generating signature image...");
       const signatureDataURL = signatureRef.current?.toDataURL(
         "image/png",
         1.0
       );
-      if (!signatureDataURL) {
-        throw new Error("Failed to generate signature image");
-      }
-      console.log(
-        "✅ Signature data URL generated, length:",
-        signatureDataURL.length
-      );
+      if (!signatureDataURL)
+        throw new Error("Gagal membuat gambar tanda tangan");
 
-      // Save signature as file to server
-      console.log("💾 Saving signature to server...");
       const fileName = `${Date.now()}-${Math.random()
         .toString(36)
         .substr(2, 9)}`;
-
       const response = (await documentsAPI.saveSignature(
         signatureDataURL,
         fileName
       )) as any;
+      if (!response.data.success)
+        throw new Error("Gagal menyimpan tanda tangan di server");
 
-      if (!response.data.success) {
-        throw new Error("Failed to save signature to server");
-      }
+      const { base64Data } = response.data;
 
-      const signatureUrl = response.data.signatureUrl || "";
-      const base64Data = response.data.base64Data || "";
-      console.log("✅ Signature saved to server:", signatureUrl);
-
-      // Add signature to state for manual handling with base64 data
-      const newSignature: SignatureData = {
-        url: signatureUrl,
-        base64Data: base64Data, // Use server response base64 data
-        name: signatureName,
-        title: signatureTitle,
-      };
-
-      setAddedSignatures((prev) => [...prev, newSignature]);
-      console.log("✅ Signature added to state with base64 data");
-
-      // Add visual indicator in editor for visual feedback
-      const placeholderHTML = `
-        <div style="margin-top: 20px; text-align: left;">
-          <p style="margin: 5px 0;"><strong>ttd</strong></p>
-          <div style="width: 200px; height: 80px; border: 1px dashed #ccc; margin: 5px 0; display: flex; align-items: center; justify-content: center; background: white;">
-            <span style="color: #666; font-size: 12px;">Signature: ${signatureName}</span>
-          </div>
-          <p style="margin: 5px 0;"><strong>${signatureName}</strong></p>
+      // Blok HTML final untuk tanda tangan digital
+      const finalSignatureHTML = `
+      <div style="text-align: left; width: 180px; font-size: 11px; margin-top: -20px;">
+          <img src="${base64Data}" alt="Signature for ${signatureName}" style="min-width: 180px; height: 60px; margin-bottom: 5px; align-content: center; justify-content: center;" />
+          <p style="text-transform: capitalize; text-align: center; align-content: center ; margin: 0; font-weight: bold; padding-top: 5px; border-top: 1px solid #000;">${signatureName}</p>
           ${
             signatureTitle
-              ? `<p style="margin: 5px 0;">${signatureTitle}</p>`
+              ? `<p style="text-transform: capitalize; text-align: center; align-content: center ; margin: 0; font-weight: bold; padding-top: 5px;">${signatureTitle}</p>`
               : ""
           }
-        </div>
-      `;
+          <p style="text-transform: capitalize; text-align: center; align-content: center ; margin: 0; font-weight: bold; padding-top: 5px;">PT. Telkom Indonesia</p>
+          </div>
+    `;
 
-      // Insert placeholder in editor for visual feedback
-      const currentHTML = editorRef.current.getValue();
-      editorRef.current.setValue(currentHTML + placeholderHTML);
+      const editor = editorRef.current;
+      const model = editor.getModel();
 
-      // Close modal and reset form
+      if (!model) {
+        toast.error("Editor model tidak tersedia. Silakan coba lagi.");
+        return;
+      }
+
+      // Pencarian yang lebih cerdas untuk menemukan seluruh blok div placeholder
+      const searchText = `<div style="text-align: center; width: 180px;">`;
+      const match = model.findNextMatch(
+        searchText,
+        { column: 1, lineNumber: 1 },
+        false,
+        false,
+        null,
+        true
+      );
+
+      if (match) {
+        // Jika placeholder ditemukan, kita perluas jangkauan untuk mencakup seluruh blok div
+        const startLine = match.range.startLineNumber;
+        // Asumsikan bloknya memiliki 5 baris, sesuaikan jika perlu
+        const endLine = startLine + 5;
+        const endColumn = model.getLineMaxColumn(endLine);
+
+        const replacementRange = new monacoRef.current.Range(
+          startLine,
+          1,
+          endLine,
+          endColumn
+        );
+
+        editor.executeEdits("replace-signature-block", [
+          {
+            range: replacementRange,
+            text: finalSignatureHTML,
+            forceMoveMarkers: true,
+          },
+        ]);
+        toast.success("Tanda tangan berhasil ditempatkan!");
+      } else {
+        // Fallback jika placeholder tidak ditemukan
+        const lastLine = model.getLineCount();
+        const lastColumn = model.getLineMaxColumn(lastLine);
+        const range = new monacoRef.current.Range(
+          lastLine,
+          lastColumn,
+          lastLine,
+          lastColumn
+        );
+        editor.executeEdits("add-signature-fallback", [
+          {
+            range: range,
+            text: finalSignatureHTML,
+            forceMoveMarkers: true,
+          },
+        ]);
+        toast.success(
+          "Placeholder standar tidak ditemukan. Tanda tangan ditambahkan di akhir."
+        );
+      }
+
       setShowSignaturePad(false);
       setSignatureName("");
       setSignatureTitle("");
       clearSignature();
-
-      console.log("✅ File-based signature process completed successfully");
-      toast.success(
-        '✅ Tanda tangan berhasil ditambahkan ke dokumen! Klik "Simpan" untuk menyimpan perubahan.'
-      );
     } catch (error) {
       console.error("❌ Error adding signature:", error);
-      toast.error("❌ Gagal menambahkan tanda tangan. Silakan coba lagi.");
+      toast.error("❌ Gagal menambahkan tanda tangan.");
     }
   };
 
@@ -474,9 +461,7 @@ export default function DocumentEditorMonaco({
     signatureContext.stroke();
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
+  const stopDrawing = () => setIsDrawing(false);
 
   const clearSignature = () => {
     if (signatureRef.current && signatureContext) {
@@ -532,7 +517,7 @@ export default function DocumentEditorMonaco({
         </button>
 
         <button
-          onClick={() => setShowSignaturePad(true)}
+          onClick={handleAddSignatureClick}
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
         >
           ✍️ Tambah Tanda Tangan
