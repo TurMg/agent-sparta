@@ -89,7 +89,7 @@ export default function DocumentEditorMonaco({
         // Kirim konten mentah ini ke komponen induk untuk diproses
         onSave(rawHtmlContent);
 
-        toast.success("Dokumen berhasil disimpan!");
+        toast.success("Dokumen sedang disimpan!");
       } catch (error) {
         console.error("❌ Error saving document:", error);
         toast.error("Gagal menyimpan dokumen");
