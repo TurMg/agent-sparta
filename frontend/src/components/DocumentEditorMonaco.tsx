@@ -46,7 +46,7 @@ export default function DocumentEditorMonaco({
       }
     }
     setShowPreview(!showPreview);
-  };
+  }; 
 
   const handleAddSignatureClick = () => {
     // Jika sedang dalam mode pratinjau, kembali ke editor terlebih dahulu
