@@ -104,7 +104,7 @@ router.post('/generate-sph', authenticateToken, async (req: AuthRequest, res) =>
       req.user!.id,
       'sph',
       title,
-      '', // HTML content will be stored separately
+      result.html, // HTML content will be stored separately
       JSON.stringify(sphData),
       'generated',
       result.pdfPath
@@ -226,9 +226,15 @@ router.patch('/:id/content', authenticateToken, async (req: AuthRequest, res) =>
       // Continue even if file update fails
     }
 
+    const updatedDocument = await dbGet(
+      'SELECT * FROM documents WHERE id = ? AND user_id = ?',
+      [req.params.id, req.user!.id]
+    );
+
     res.json({
       success: true,
-      message: 'Document content updated successfully'
+      message: 'Document content updated successfully',
+      data: updatedDocument,
     });
   } catch (error) {
     console.error('Update document content error:', error);

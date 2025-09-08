@@ -1,23 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Download, 
-  Eye, 
-  Edit, 
-  Share2, 
+import React, { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  Download,
+  Eye,
+  Edit,
+  Share2,
   FileText,
   Calendar,
   User,
-
-} from 'lucide-react';
-import Layout from '@/components/Layout';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import DocumentEditorUserFriendly from '@/components/DocumentEditorUserFriendly';
-import { documentsAPI } from '@/utils/api';
-import { Document } from '@/types';
-import { formatDateTime, formatCurrency } from '@/utils/format';
-import toast from 'react-hot-toast';
+} from "lucide-react";
+import Layout from "@/components/Layout";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import DocumentEditorMonaco from "@/components/DocumentEditorMonaco";
+import { documentsAPI } from "@/utils/api";
+import { Document } from "@/types";
+import { formatDateTime, formatCurrency } from "@/utils/format";
+import toast from "react-hot-toast";
 
 const DocumentViewerPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +27,8 @@ const DocumentViewerPage: React.FC = () => {
   const [showSignatureModal, setShowSignatureModal] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
-  const [documentContent, setDocumentContent] = useState<string>('');
+  const [documentContent, setDocumentContent] = useState<string>("");
+  const [previewKey, setPreviewKey] = useState(0);
 
   useEffect(() => {
     if (id) {
@@ -38,70 +38,60 @@ const DocumentViewerPage: React.FC = () => {
 
   const loadDocument = async () => {
     if (!id) return;
-
+    setIsLoading(true); // Set loading di awal
     try {
       const response = await documentsAPI.getById(id);
       if (response.data.success) {
         const docData = response.data.data;
-        setDocument(docData);
-        
-        // Set document content for editor
-        if (docData.content) {
-          setDocumentContent(docData.content);
-        } else if (docData.filePath) {
-          // Load from HTML file (not PDF)
-          const htmlPath = docData.filePath.replace('.pdf', '.html');
+
+        // Logika fetch konten HTML jika kosong
+        if (!docData.content && docData.filePath) {
+          console.log("Konten kosong, fetching dari file HTML...");
+          const htmlPath = docData.filePath.replace(".pdf", ".html");
           try {
             const htmlResponse = await fetch(htmlPath);
             if (htmlResponse.ok) {
-              const htmlContent = await htmlResponse.text();
-              // Extract body content for editing
-              const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-              if (bodyMatch) {
-                setDocumentContent(bodyMatch[1]);
-              } else {
-                setDocumentContent(htmlContent);
-              }
-            } else {
-              console.error('HTML file not found, creating from data');
-              setDocumentContent(generateEditableContent());
+              docData.content = await htmlResponse.text();
             }
-          } catch (error) {
-            console.error('Error loading HTML content:', error);
-            setDocumentContent(generateEditableContent());
+          } catch (fetchError) {
+            console.error("Gagal fetch konten HTML:", fetchError);
           }
-        } else {
-          // Generate editable content from data
-          setDocumentContent(generateEditableContent());
         }
-        
+
+        setDocument(docData);
+        const fullHtmlContent = docData.content || "";
+        const bodyMatch = fullHtmlContent.match(
+          /<body[^>]*>([\s\S]*?)<\/body>/i
+        );
+        const contentForEditor = bodyMatch ? bodyMatch[1] : fullHtmlContent;
+        setDocumentContent(contentForEditor);
+
         if (docData.data) {
-          // Handle both string and object data
           try {
-            const parsedData = typeof docData.data === 'string' 
-              ? JSON.parse(docData.data) 
-              : docData.data;
+            const parsedData =
+              typeof docData.data === "string"
+                ? JSON.parse(docData.data)
+                : docData.data;
             setDocumentData(parsedData);
           } catch (error) {
-            console.error('Error parsing document data:', error);
-            console.log('Raw data:', docData.data);
+            console.error("Error parsing document data:", error);
             setDocumentData(null);
           }
         }
       } else {
-        toast.error('Dokumen tidak ditemukan');
+        toast.error("Dokumen tidak ditemukan");
       }
     } catch (error) {
-      console.error('Error loading document:', error);
-      toast.error('Gagal memuat dokumen');
+      console.error("Error loading document:", error);
+      toast.error("Gagal memuat dokumen");
     } finally {
       setIsLoading(false);
     }
   };
 
   const generateEditableContent = () => {
-    if (!documentData) return '<p>Loading document content...</p>';
-    
+    if (!documentData) return "<p>Loading document content...</p>";
+
     return `
       <div class="container" style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
         <div class="header" style="border-bottom: 3px solid #e60012; padding-bottom: 20px; margin-bottom: 30px;">
@@ -124,7 +114,9 @@ const DocumentViewerPage: React.FC = () => {
         </div>
 
         <p>Dengan hormat,</p>
-        <p>Kami mengucapkan terima kasih atas kepercayaan yang diberikan kepada <strong>PT. Your Company</strong> untuk dapat bekerjasama dengan <strong>${documentData.customerName}</strong> dalam layanan Internet Dedicated Astinet.</p>
+        <p>Kami mengucapkan terima kasih atas kepercayaan yang diberikan kepada <strong>PT. Your Company</strong> untuk dapat bekerjasama dengan <strong>${
+          documentData.customerName
+        }</strong> dalam layanan Internet Dedicated Astinet.</p>
 
         <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
           <thead>
@@ -138,16 +130,34 @@ const DocumentViewerPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            ${documentData.services?.map((service: any, index: number) => `
+            ${
+              documentData.services
+                ?.map(
+                  (service: any, index: number) => `
               <tr>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${index + 1}</td>
-                <td style="border: 1px solid #000; padding: 10px;">${service.serviceName}</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${service.connectionCount}</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(service.psbFee)}</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(service.monthlyFeeNormal)}</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(service.monthlyFeeDiscount)}</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${
+                  index + 1
+                }</td>
+                <td style="border: 1px solid #000; padding: 10px;">${
+                  service.serviceName
+                }</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${
+                  service.connectionCount
+                }</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
+                  service.psbFee
+                )}</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
+                  service.monthlyFeeNormal
+                )}</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
+                  service.monthlyFeeDiscount
+                )}</td>
               </tr>
-            `).join('') || ''}
+            `
+                )
+                .join("") || ""
+            }
           </tbody>
         </table>
 
@@ -161,34 +171,33 @@ const DocumentViewerPage: React.FC = () => {
           </ol>
         </div>
 
-        <p>Demikian disampaikan dari surat penawaran harga ini, agar dapat menjadi bahan dasar pertimbangan oleh pihak manajemen <strong>${documentData.customerName}</strong>.</p>
+        <p>Demikian disampaikan dari surat penawaran harga ini, agar dapat menjadi bahan dasar pertimbangan oleh pihak manajemen <strong>${
+          documentData.customerName
+        }</strong>.</p>
 
         <p style="margin-top: 30px;">Hormat kami,</p>
 
-        <div style="display: flex; justify-content: space-between; margin-top: 80px;">
-          <div style="text-align: center; width: 200px;">
-            <div style="height: 80px; border-bottom: 1px solid #000; margin-bottom: 10px;"></div>
-            <p><strong>ttd</strong></p>
-            <br>
-            <p><strong>Nama AM</strong></p>
-            <p><strong>PT. Your Company</strong></p>
-          </div>
-          <div style="text-align: center; width: 200px;">
-            <div style="height: 80px; border-bottom: 1px solid #000; margin-bottom: 10px;"></div>
-            <p><strong>Tanda Tangan & Cap</strong></p>
-            <p><strong>${documentData.customerName}</strong></p>
-          </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+            <div style="text-align: center; width: 180px;">
+                <div style="height: 50px; border-bottom: 1px solid #000; margin-bottom: 8px;"></div>
+                <p><strong>Nama AM</strong></p>
+                <p><strong>PT. Your Company</strong></p>
+            </div>
         </div>
       </div>
     `;
   };
 
-  const saveDocumentContent = async (content: string) => {
+  const saveDocumentContent = async (contentFromEditor: string) => {
     if (!id) return;
+    setIsSaving(true);
 
     try {
-      setIsSaving(true);
-      
+      if (!documentData) {
+        toast.error("Data dokumen tidak lengkap, tidak bisa menyimpan.");
+        setIsSaving(false);
+        return;
+      }
       // Create full HTML document
       const fullHTML = `
 <!DOCTYPE html>
@@ -198,34 +207,161 @@ const DocumentViewerPage: React.FC = () => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SPH - ${documentData?.customerName}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-        th { background-color: #c41e3a; color: white; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #fff;
+            color: #333;
+            line-height: 1.3;
+            font-size: 11px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border: none;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .company-logo {
+            text-align: right;
+        }
+        .company-logo img {
+            max-height: 50px;
+            width: auto;
+            object-fit: contain;
+        }
+        .company-info {
+            flex: 1;
+        }
+        .company-info h1 {
+            color: #333;
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .company-info p {
+            margin: 2px 0;
+            color: #333;
+            font-size: 10px;
+        }
+        .document-title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-decoration: underline;
+        }
+        .customer-info {
+            margin-bottom: 20px;
+        }
+        .customer-info table {
+            width: 100%;
+        }
+        .customer-info td {
+            padding: 3px 0;
+            vertical-align: top;
+        }
+        .customer-info td:first-child {
+            width: 120px;
+            font-weight: bold;
+        }
+        .services-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 10px;
+        }
+        .services-table th,
+        .services-table td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            text-align: center;
+        }
+        .services-table th {
+            background-color: #c41e3a;
+            color: white;
+            font-weight: bold;
+        }
+        .services-table .number {
+            text-align: center;
+            width: 40px;
+        }
+        .services-table .currency {
+            text-align: center;
+        }
+        .total-row {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        .notes {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 3px solid #c41e3a;
+        }
+        .signature-section {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
+            text-align: center;
+            width: 180px;
+        }
+        .signature-line {
+            border-bottom: 1px solid #000;
+            margin: 10px 0 8px 0;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+        @media print {
+            body { margin: 0; }
+            .container { border: none; }
+            @page { margin: 12mm; }
+        }
+        @media print {
+            body { margin: 0; }
+            .container { border: none; box-shadow: none; }
+        }
     </style>
 </head>
 <body>
-${content}
+${contentFromEditor}
 </body>
 </html>`;
-      
-      const response = await documentsAPI.updateContent(id, fullHTML, documentData);
-      
+
+      const response = await documentsAPI.updateContent(
+        id,
+        fullHTML,
+        documentData
+      );
+
       if (response.data.success) {
-        setDocumentContent(content);
-        setDocument(prev => prev ? { ...prev, content: fullHTML } : null);
-        toast.success('Dokumen berhasil disimpan');
+        toast.success("Dokumen berhasil disimpan!");
         setIsEditing(false);
-        
-        // Reload document to refresh preview
+        // Panggil loadDocument lagi untuk refresh semua data, termasuk preview
         await loadDocument();
       } else {
-        toast.error('Gagal menyimpan dokumen');
+        toast.error("Gagal menyimpan dokumen.");
       }
     } catch (error) {
-      console.error('Error saving document:', error);
-      toast.error('Gagal menyimpan dokumen');
+      console.error("Error saving document:", error);
+      toast.error("Gagal menyimpan dokumen");
     } finally {
       setIsSaving(false);
     }
@@ -236,24 +372,26 @@ ${content}
 
     try {
       setIsSaving(true);
-      toast.loading('Regenerating PDF dengan perubahan terbaru...');
-      
+      toast.loading("Regenerating PDF dengan perubahan terbaru...");
+
       const response = await documentsAPI.regeneratePDF(id);
-      
+
       if (response.data.success) {
         toast.dismiss();
-        toast.success('PDF berhasil diupdate dengan semua perubahan dan tanda tangan!');
-        
+        toast.success(
+          "PDF berhasil diupdate dengan semua perubahan dan tanda tangan!"
+        );
+
         // Reload document to get updated file path
         await loadDocument();
       } else {
         toast.dismiss();
-        toast.error('Gagal regenerate PDF');
+        toast.error("Gagal regenerate PDF");
       }
     } catch (error) {
-      console.error('Error regenerating PDF:', error);
+      console.error("Error regenerating PDF:", error);
       toast.dismiss();
-      toast.error('Gagal regenerate PDF');
+      toast.error("Gagal regenerate PDF");
     } finally {
       setIsSaving(false);
     }
@@ -266,38 +404,49 @@ ${content}
       const response = await documentsAPI.updateStatus(id, newStatus);
       if (response.data.success && document) {
         setDocument({ ...document, status: newStatus as any });
-        toast.success('Status dokumen berhasil diupdate');
+        toast.success("Status dokumen berhasil diupdate");
       }
     } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Gagal mengupdate status dokumen');
+      console.error("Error updating status:", error);
+      toast.error("Gagal mengupdate status dokumen");
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'generated': return 'bg-blue-100 text-blue-800';
-      case 'signed': return 'bg-green-100 text-green-800';
-      case 'sent': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "draft":
+        return "bg-gray-100 text-gray-800";
+      case "generated":
+        return "bg-blue-100 text-blue-800";
+      case "signed":
+        return "bg-green-100 text-green-800";
+      case "sent":
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'draft': return 'Draft';
-      case 'generated': return 'Generated';
-      case 'signed': return 'Signed';
-      case 'sent': return 'Sent';
-      default: return status;
+      case "draft":
+        return "Draft";
+      case "generated":
+        return "Generated";
+      case "signed":
+        return "Signed";
+      case "sent":
+        return "Sent";
+      default:
+        return status;
     }
   };
 
   const calculateTotal = (services: any[]) => {
     if (!services) return 0;
     return services.reduce((total, service) => {
-      const serviceTotal = (service.psbFee + service.monthlyFeeDiscount) * service.connectionCount;
+      const serviceTotal =
+        (service.psbFee + service.monthlyFeeDiscount) * service.connectionCount;
       return total + serviceTotal;
     }, 0);
   };
@@ -317,8 +466,12 @@ ${content}
       <Layout>
         <div className="p-6 max-w-4xl mx-auto text-center">
           <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Dokumen tidak ditemukan</h2>
-          <p className="text-gray-600 mb-6">Dokumen yang Anda cari tidak ada atau telah dihapus.</p>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+            Dokumen tidak ditemukan
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Dokumen yang Anda cari tidak ada atau telah dihapus.
+          </p>
           <Link to="/documents" className="btn-primary">
             Kembali ke Dokumen
           </Link>
@@ -340,9 +493,15 @@ ${content}
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{document.title}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {document.title}
+              </h1>
               <div className="flex items-center space-x-4 mt-2">
-                <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(document.status)}`}>
+                <span
+                  className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(
+                    document.status
+                  )}`}
+                >
                   {getStatusLabel(document.status)}
                 </span>
                 <span className="text-sm text-gray-500">
@@ -369,7 +528,7 @@ ${content}
                   Preview Dokumen
                 </a>
                 <a
-                  href={document.filePath.replace('.html', '.pdf')}
+                  href={document.filePath.replace(".html", ".pdf")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-secondary inline-flex items-center"
@@ -379,16 +538,16 @@ ${content}
                 </a>
               </>
             )}
-            
+
             <button
               onClick={() => setIsEditing(!isEditing)}
               className="btn-secondary inline-flex items-center"
             >
               <Edit className="h-4 w-4 mr-2" />
-              {isEditing ? 'Selesai Edit' : 'Edit Dokumen'}
+              {isEditing ? "Selesai Edit" : "Edit Dokumen"}
             </button>
-            
-            {document.status !== 'signed' && (
+
+            {document.status !== "signed" && (
               <button
                 onClick={() => setShowSignatureModal(true)}
                 className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center"
@@ -397,20 +556,20 @@ ${content}
                 Tanda Tangan
               </button>
             )}
-            
+
             <button
               onClick={regeneratePDF}
               disabled={isSaving}
               className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center disabled:opacity-50"
             >
               <Download className="h-4 w-4 mr-2" />
-              {isSaving ? 'Updating...' : 'Update PDF'}
+              {isSaving ? "Updating..." : "Update PDF"}
             </button>
-            
+
             <button
               onClick={() => {
                 navigator.clipboard.writeText(window.location.href);
-                toast.success('Link dokumen berhasil disalin');
+                toast.success("Link dokumen berhasil disalin");
               }}
               className="btn-secondary inline-flex items-center"
             >
@@ -423,11 +582,13 @@ ${content}
         {/* Document Editor */}
         {isEditing && documentContent && (
           <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit Dokumen</h2>
-                    <DocumentEditorUserFriendly
-          content={documentContent}
-          onSave={saveDocumentContent}
-        />
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Edit Dokumen
+            </h2>
+            <DocumentEditorMonaco
+              content={documentContent}
+              onSave={saveDocumentContent}
+            />
           </div>
         )}
 
@@ -453,11 +614,14 @@ ${content}
                   </label>
                   <p className="text-gray-900 flex items-center">
                     <Calendar className="h-4 w-4 mr-1" />
-                    {new Date(documentData.sphDate).toLocaleDateString('id-ID', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {new Date(documentData.sphDate).toLocaleDateString(
+                      "id-ID",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )}
                   </p>
                 </div>
               </div>
@@ -494,30 +658,38 @@ ${content}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {documentData.services?.map((service: any, index: number) => (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {service.serviceName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
-                          {service.connectionCount}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                          {formatCurrency(service.psbFee)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                          {formatCurrency(service.monthlyFeeNormal)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                          {formatCurrency(service.monthlyFeeDiscount)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
-                          {formatCurrency((service.psbFee + service.monthlyFeeDiscount) * service.connectionCount)}
-                        </td>
-                      </tr>
-                    ))}
+                    {documentData.services?.map(
+                      (service: any, index: number) => (
+                        <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {service.serviceName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                            {service.connectionCount}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                            {formatCurrency(service.psbFee)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                            {formatCurrency(service.monthlyFeeNormal)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                            {formatCurrency(service.monthlyFeeDiscount)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                            {formatCurrency(
+                              (service.psbFee + service.monthlyFeeDiscount) *
+                                service.connectionCount
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    )}
                     <tr className="bg-gray-50">
-                      <td colSpan={5} className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                      <td
+                        colSpan={5}
+                        className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right"
+                      >
                         TOTAL
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-gray-900 text-right">
@@ -532,51 +704,69 @@ ${content}
             {/* Notes */}
             {documentData.notes && (
               <div className="card">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Catatan</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Catatan
+                </h2>
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-gray-900 whitespace-pre-wrap">{documentData.notes}</p>
+                  <p className="text-gray-900 whitespace-pre-wrap">
+                    {documentData.notes}
+                  </p>
                 </div>
               </div>
             )}
 
             {/* Attachments */}
-            {documentData.attachments && documentData.attachments.length > 0 && (
-              <div className="card">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Lampiran</h2>
-                <div className="space-y-2">
-                  {documentData.attachments.map((attachment: string, index: number) => (
-                    <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                      <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                      <span className="text-gray-900">{attachment}</span>
-                    </div>
-                  ))}
+            {documentData.attachments &&
+              documentData.attachments.length > 0 && (
+                <div className="card">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Lampiran
+                  </h2>
+                  <div className="space-y-2">
+                    {documentData.attachments.map(
+                      (attachment: string, index: number) => (
+                        <div
+                          key={index}
+                          className="flex items-center p-3 bg-gray-50 rounded-lg"
+                        >
+                          <FileText className="h-5 w-5 text-gray-400 mr-3" />
+                          <span className="text-gray-900">{attachment}</span>
+                        </div>
+                      )
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Document Preview */}
             {document.filePath && (
               <div className="card">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Preview Dokumen</h2>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Preview Dokumen
+                </h2>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                   <p className="text-yellow-800 text-sm">
-                    ⚠️ <strong>Preview terbatas:</strong> Tanda tangan mungkin tidak terlihat dalam preview iframe karena security policy. 
-                    Untuk melihat dokumen lengkap dengan tanda tangan, silakan buka di tab baru.
+                    ⚠️ <strong>Preview terbatas:</strong> Tanda tangan mungkin
+                    tidak terlihat dalam preview iframe karena security policy.
+                    Untuk melihat dokumen lengkap dengan tanda tangan, silakan
+                    buka di tab baru.
                   </p>
                 </div>
-                
+
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <iframe
-                    src={document.filePath.replace('.pdf', '.html')}
+                    // src={document.filePath.replace(".pdf", ".html")}
+                    key={previewKey}
+                    srcDoc={(document as any).content || ""}
                     className="w-full h-96"
                     title="Document Preview"
-                    sandbox="allow-same-origin allow-scripts"
+                    sandbox="allow-same-origin"
                   />
                 </div>
-                
+
                 <div className="mt-4 text-center space-x-4">
                   <a
-                    href={document.filePath.replace('.pdf', '.html')}
+                    href={document.filePath.replace(".pdf", ".html")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -603,7 +793,9 @@ ${content}
         {showSignatureModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Tanda Tangan Digital</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Tanda Tangan Digital
+              </h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -645,9 +837,9 @@ ${content}
                 </button>
                 <button
                   onClick={() => {
-                    updateStatus('signed');
+                    updateStatus("signed");
                     setShowSignatureModal(false);
-                    toast.success('Dokumen berhasil ditandatangani');
+                    toast.success("Dokumen berhasil ditandatangani");
                   }}
                   className="btn-primary"
                 >

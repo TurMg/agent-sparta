@@ -257,7 +257,7 @@ Berikan respons dalam bahasa Indonesia yang profesional.`;
                 userId,
                 'sph',
                 title,
-                '',
+                result.html,
                 JSON.stringify(extractedData),
                 'generated',
                 result.pdfPath

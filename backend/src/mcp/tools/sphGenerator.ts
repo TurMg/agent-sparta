@@ -1,37 +1,38 @@
-import handlebars from 'handlebars';
-import puppeteer from 'puppeteer';
-import path from 'path';
-import fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
-import { SPHData } from '../../types';
+import handlebars from "handlebars";
+import puppeteer from "puppeteer";
+import path from "path";
+import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
+import { SPHData } from "../../types";
 
 // Register Handlebars helpers
-handlebars.registerHelper('formatCurrency', function(amount: number) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
+handlebars.registerHelper("formatCurrency", function (amount: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(amount);
 });
 
-handlebars.registerHelper('formatDate', function(dateString: string) {
+handlebars.registerHelper("formatDate", function (dateString: string) {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("id-ID", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   } catch (error) {
-    console.error('Date formatting error:', error);
+    console.error("Date formatting error:", error);
     return dateString; // fallback to original string
   }
 });
 
-handlebars.registerHelper('calculateTotal', function(services: any[]) {
+handlebars.registerHelper("calculateTotal", function (services: any[]) {
   return services.reduce((total, service) => {
-    const serviceTotal = (service.psbFee + service.monthlyFeeDiscount) * service.connectionCount;
+    const serviceTotal =
+      (service.psbFee + service.monthlyFeeDiscount) * service.connectionCount;
     return total + serviceTotal;
   }, 0);
 });
@@ -253,7 +254,6 @@ const SPH_TEMPLATE = `
         <div style="display: flex; justify-content: space-between; margin-top: 40px;">
             <div style="text-align: center; width: 180px;">
                 <div style="height: 50px; border-bottom: 1px solid #000; margin-bottom: 8px;"></div>
-                <p><strong>ttd</strong></p>
                 <p><strong>Nama AM</strong></p>
                 <p><strong>{{companyName}}</strong></p>
             </div>
@@ -268,30 +268,30 @@ const SPH_TEMPLATE = `
 
 export async function generateSPHDocument(data: SPHData) {
   try {
-    console.log('SPH Generator - Input data:', JSON.stringify(data, null, 2));
-    
+    console.log("SPH Generator - Input data:", JSON.stringify(data, null, 2));
+
     // Compile template
     const template = handlebars.compile(SPH_TEMPLATE);
-    
+
     // Prepare template data
     const templateData = {
       ...data,
-      companyName: process.env.COMPANY_NAME || 'PT. Your Company',
-      companyAddress: process.env.COMPANY_ADDRESS || 'Alamat Perusahaan',
-      companyPhone: process.env.COMPANY_PHONE || '+62-21-xxxxxxxx',
-      companyEmail: process.env.COMPANY_EMAIL || 'info@company.com',
-      currentDate: new Date().toLocaleDateString('id-ID', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
+      companyName: process.env.COMPANY_NAME || "PT. Your Company",
+      companyAddress: process.env.COMPANY_ADDRESS || "Alamat Perusahaan",
+      companyPhone: process.env.COMPANY_PHONE || "+62-21-xxxxxxxx",
+      companyEmail: process.env.COMPANY_EMAIL || "info@company.com",
+      currentDate: new Date().toLocaleDateString("id-ID", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
     };
 
     // Generate HTML
     const html = template(templateData);
-    
+
     // Create uploads directory if not exists (absolute path)
-    const uploadsDir = path.resolve(process.cwd(), 'uploads');
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
@@ -299,8 +299,8 @@ export async function generateSPHDocument(data: SPHData) {
     const documentId = uuidv4();
     const htmlPath = path.join(uploadsDir, `sph-${documentId}.html`);
     const pdfPath = path.join(uploadsDir, `sph-${documentId}.pdf`);
-    
-    console.log('📄 Generating files:', { documentId, htmlPath, pdfPath });
+
+    console.log("📄 Generating files:", { documentId, htmlPath, pdfPath });
 
     // Save HTML file
     fs.writeFileSync(htmlPath, html);
@@ -308,22 +308,22 @@ export async function generateSPHDocument(data: SPHData) {
     // Generate PDF using Puppeteer
     const browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
-    
+
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
     await page.pdf({
       path: pdfPath,
-      format: 'A4',
+      format: "A4",
       printBackground: true,
       margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm'
-      }
+        top: "20mm",
+        right: "20mm",
+        bottom: "20mm",
+        left: "20mm",
+      },
     });
 
     await browser.close();
@@ -331,15 +331,16 @@ export async function generateSPHDocument(data: SPHData) {
     return {
       success: true,
       documentId,
+      html: html,
       htmlPath: `/uploads/sph-${documentId}.html`,
       pdfPath: `/uploads/sph-${documentId}.pdf`,
-      data: templateData
+      data: templateData,
     };
   } catch (error) {
-    console.error('SPH generation error:', error);
+    console.error("SPH generation error:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }
