@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Layout from "@/components/Layout";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import DocumentEditorMonaco from "@/components/DocumentEditorMonaco";
+import DocumentEditorTinyMCE from "@/components/DocumentEditorTinyMCE";
 import { documentsAPI } from "@/utils/api";
 import { Document } from "@/types";
 import { formatDateTime, formatCurrency } from "@/utils/format";
@@ -34,6 +34,140 @@ const DocumentViewerPage: React.FC = () => {
   const [signatureTitle, setSignatureTitle] = useState("");
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
   const [isApplyingSignature, setIsApplyingSignature] = useState(false);
+
+  const documentStyles = `
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 15px;
+        background-color: #fff;
+        color: #333;
+        line-height: 1.3;
+        font-size: 11px;
+    }
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border: none;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+    .company-logo {
+        text-align: right;
+    }
+    .company-logo img {
+        max-height: 50px;
+        width: auto;
+        object-fit: contain;
+    }
+    .company-info {
+        flex: 1;
+    }
+    .company-info h1 {
+        color: #333;
+        margin: 0;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    .company-info p {
+        margin: 2px 0;
+        color: #333;
+        font-size: 10px;
+    }
+    .document-title {
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+        margin: 20px 0;
+        text-decoration: underline;
+    }
+    .customer-info {
+        margin-bottom: 20px;
+    }
+    .customer-info table {
+        width: 100%;
+    }
+    .customer-info td {
+        padding: 3px 0;
+        vertical-align: top;
+    }
+    .customer-info td:first-child {
+        width: 120px;
+        font-weight: bold;
+    }
+    .services-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 10px;
+    }
+    .services-table th,
+    .services-table td {
+        border: 1px solid #000;
+        padding: 6px 4px;
+        text-align: center;
+    }
+    .services-table th {
+        background-color: #c41e3a;
+        color: white;
+        font-weight: bold;
+    }
+    .services-table .number {
+        text-align: center;
+        width: 40px;
+    }
+    .services-table .currency {
+        text-align: center;
+    }
+    .total-row {
+        background-color: #f9f9f9;
+        font-weight: bold;
+    }
+    .notes {
+        margin: 15px 0;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border-left: 3px solid #c41e3a;
+    }
+    .signature-section {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .signature-box {
+        text-align: center;
+        width: 180px;
+    }
+    .signature-line {
+        border-bottom: 1px solid #000;
+        margin: 10px 0 8px 0;
+    }
+    .footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 10px;
+        color: #666;
+        border-top: 1px solid #ccc;
+        padding-top: 10px;
+    }
+    @media print {
+        body { margin: 0; }
+        .container { border: none; }
+        @page { margin: 12mm; }
+    }
+    @media print {
+        body { margin: 0; }
+        .container { border: none; box-shadow: none; }
+    }
+  `;
 
   useEffect(() => {
     if (id) {
@@ -171,7 +305,7 @@ const DocumentViewerPage: React.FC = () => {
       await updateStatus("signed");
 
       // 7. RELOAD DATA DOKUMEN DARI SERVER (INI BARIS BARUNYA)
-      await loadDocument(); 
+      await loadDocument();
 
       toast.success(
         'Tanda tangan berhasil diterapkan! Klik "Update PDF" untuk melihat hasilnya.'
@@ -307,139 +441,7 @@ const DocumentViewerPage: React.FC = () => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SPH - ${documentData?.customerName}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 15px;
-            background-color: #fff;
-            color: #333;
-            line-height: 1.3;
-            font-size: 11px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border: none;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-        .company-logo {
-            text-align: right;
-        }
-        .company-logo img {
-            max-height: 50px;
-            width: auto;
-            object-fit: contain;
-        }
-        .company-info {
-            flex: 1;
-        }
-        .company-info h1 {
-            color: #333;
-            margin: 0;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .company-info p {
-            margin: 2px 0;
-            color: #333;
-            font-size: 10px;
-        }
-        .document-title {
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-decoration: underline;
-        }
-        .customer-info {
-            margin-bottom: 20px;
-        }
-        .customer-info table {
-            width: 100%;
-        }
-        .customer-info td {
-            padding: 3px 0;
-            vertical-align: top;
-        }
-        .customer-info td:first-child {
-            width: 120px;
-            font-weight: bold;
-        }
-        .services-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 10px;
-        }
-        .services-table th,
-        .services-table td {
-            border: 1px solid #000;
-            padding: 6px 4px;
-            text-align: center;
-        }
-        .services-table th {
-            background-color: #c41e3a;
-            color: white;
-            font-weight: bold;
-        }
-        .services-table .number {
-            text-align: center;
-            width: 40px;
-        }
-        .services-table .currency {
-            text-align: center;
-        }
-        .total-row {
-            background-color: #f9f9f9;
-            font-weight: bold;
-        }
-        .notes {
-            margin: 15px 0;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-left: 3px solid #c41e3a;
-        }
-        .signature-section {
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .signature-box {
-            text-align: center;
-            width: 180px;
-        }
-        .signature-line {
-            border-bottom: 1px solid #000;
-            margin: 10px 0 8px 0;
-        }
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
-        }
-        @media print {
-            body { margin: 0; }
-            .container { border: none; }
-            @page { margin: 12mm; }
-        }
-        @media print {
-            body { margin: 0; }
-            .container { border: none; box-shadow: none; }
-        }
-    </style>
+    <style>${documentStyles}</style>
 </head>
 <body>
 ${contentFromEditor}
@@ -686,9 +688,12 @@ ${contentFromEditor}
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Edit Dokumen
             </h2>
-            <DocumentEditorMonaco
-              content={documentContent}
-              onSave={saveDocumentContent}
+            <DocumentEditorTinyMCE
+              editableContent={documentContent}
+              documentStyles={documentStyles}
+              onContentChange={setDocumentContent}
+              onSave={() => saveDocumentContent(documentContent)}
+              isLoading={isSaving}
             />
           </div>
         )}
