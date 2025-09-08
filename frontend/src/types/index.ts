@@ -49,6 +49,8 @@ export interface Document {
   filePath?: string;
   createdAt: string;
   updatedAt: string;
+  content?: string; 
+  data?: any;
 }
 
 export interface ChatSession {
