@@ -2,7 +2,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
 }
 
 export interface AuthState {
@@ -21,7 +21,7 @@ export interface RegisterData {
   username: string;
   email: string;
   password: string;
-  role?: 'admin' | 'user';
+  role?: "admin" | "user";
 }
 
 export interface SPHData {
@@ -43,12 +43,14 @@ export interface ServiceItem {
 
 export interface Document {
   id: string;
-  type: 'sph' | 'contract' | 'invoice';
+  type: "sph" | "contract" | "invoice";
   title: string;
-  status: 'draft' | 'generated' | 'signed' | 'sent';
+  status: "draft" | "generated" | "signed" | "sent";
   filePath?: string;
   createdAt: string;
   updatedAt: string;
+  content?: string;
+  data?: any;
 }
 
 export interface ChatSession {
@@ -60,7 +62,7 @@ export interface ChatSession {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   metadata?: any;
   timestamp: string;
