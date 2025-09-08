@@ -323,41 +323,55 @@ export default function DocumentEditorMonaco({
         return;
       }
 
-      // Pencarian yang lebih cerdas untuk menemukan seluruh blok div placeholder
-      const searchText = `<div style="text-align: center; width: 180px;">`;
-      const match = model.findNextMatch(
-        searchText,
-        { column: 1, lineNumber: 1 },
-        false,
-        false,
-        null,
-        true
-      );
+      const editorContent = model.getValue(); // Menggunakan nama variabel yang benar
+      let rangeToReplace = null; // Deklarasi variabel di awal
 
-      if (match) {
-        // Jika placeholder ditemukan, kita perluas jangkauan untuk mencakup seluruh blok div
-        const startLine = match.range.startLineNumber;
-        // Asumsikan bloknya memiliki 5 baris, sesuaikan jika perlu
-        const endLine = startLine + 5;
-        const endColumn = model.getLineMaxColumn(endLine);
+      const existingSignatureRegex =
+        /<div style="text-align: left; width: 180px;[^>]*>[\s\S]*?PT\. Telkom Indonesia<\/p>[\s\S]*?<\/div>/;
+      const placeholderRegex =
+        /<div style="text-align: center; width: 180px;[^>]*>[\s\S]*?<p><strong>Nama AM<\/strong><\/p>[\s\S]*?<\/div>/;
 
-        const replacementRange = new monacoRef.current.Range(
-          startLine,
-          1,
-          endLine,
-          endColumn
+      let match = editorContent.match(existingSignatureRegex);
+      if (match && match.index !== undefined) {
+        console.log("Existing signature found. Replacing...");
+        const startPos = model.getPositionAt(match.index);
+        const endPos = model.getPositionAt(match.index + match[0].length);
+        rangeToReplace = new monacoRef.current.Range(
+          startPos.lineNumber,
+          startPos.column,
+          endPos.lineNumber,
+          endPos.column
         );
+      } else {
+        // 2. Jika tidak ada, cari placeholder awal
+        console.log("Existing signature not found. Looking for placeholder...");
+        match = editorContent.match(placeholderRegex);
+        if (match && match.index !== undefined) {
+          console.log("Placeholder found. Replacing...");
+          const startPos = model.getPositionAt(match.index);
+          const endPos = model.getPositionAt(match.index + match[0].length);
+          rangeToReplace = new monacoRef.current.Range(
+            startPos.lineNumber,
+            startPos.column,
+            endPos.lineNumber,
+            endPos.column
+          );
+        }
+      }
 
+      if (rangeToReplace) {
+        // Lakukan penggantian jika salah satu ditemukan
         editor.executeEdits("replace-signature-block", [
           {
-            range: replacementRange,
+            range: rangeToReplace,
             text: finalSignatureHTML,
             forceMoveMarkers: true,
           },
         ]);
-        toast.success("Tanda tangan berhasil ditempatkan!");
+        toast.success("Tanda tangan berhasil diperbarui!");
       } else {
-        // Fallback jika placeholder tidak ditemukan
+        // 3. Jika semua gagal, tambahkan di akhir
+        console.log("No placeholder found. Appending to the end.");
         const lastLine = model.getLineCount();
         const lastColumn = model.getLineMaxColumn(lastLine);
         const range = new monacoRef.current.Range(
@@ -369,12 +383,12 @@ export default function DocumentEditorMonaco({
         editor.executeEdits("add-signature-fallback", [
           {
             range: range,
-            text: finalSignatureHTML,
+            text: `\n${finalSignatureHTML}`,
             forceMoveMarkers: true,
           },
         ]);
         toast.success(
-          "Placeholder standar tidak ditemukan. Tanda tangan ditambahkan di akhir."
+          "Placeholder tidak ditemukan. Tanda tangan baru ditambahkan di akhir."
         );
       }
 
@@ -495,17 +509,6 @@ export default function DocumentEditorMonaco({
     return true;
   };
 
-  // Extract body content for editing (remove HTML structure)
-  const getEditableContent = () => {
-    if (content.includes("<html") || content.includes("<body")) {
-      const bodyMatch = content.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-      if (bodyMatch) {
-        return bodyMatch[1];
-      }
-    }
-    return content;
-  };
-
   return (
     <div className="space-y-4">
       {/* Editor Toolbar */}
@@ -558,7 +561,7 @@ export default function DocumentEditorMonaco({
           <Editor
             height="600px"
             defaultLanguage="html"
-            value={getEditableContent()}
+            value={content}
             onMount={handleEditorDidMount}
             options={{
               minimap: { enabled: false },

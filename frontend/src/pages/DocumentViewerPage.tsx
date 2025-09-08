@@ -38,39 +38,33 @@ const DocumentViewerPage: React.FC = () => {
 
   const loadDocument = async () => {
     if (!id) return;
-
+    setIsLoading(true); // Set loading di awal
     try {
       const response = await documentsAPI.getById(id);
       if (response.data.success) {
         const docData = response.data.data;
 
-        // Jika konten dari API kosong tapi ada filePath, kita fetch manual
+        // Logika fetch konten HTML jika kosong
         if (!docData.content && docData.filePath) {
           console.log("Konten kosong, fetching dari file HTML...");
           const htmlPath = docData.filePath.replace(".pdf", ".html");
           try {
             const htmlResponse = await fetch(htmlPath);
             if (htmlResponse.ok) {
-              const htmlContent = await htmlResponse.text();
-              docData.content = htmlContent; // <-- SUNTIKKAN KONTEN KE DATA
+              docData.content = await htmlResponse.text();
             }
           } catch (fetchError) {
             console.error("Gagal fetch konten HTML:", fetchError);
           }
         }
 
-        setDocument(docData); // State utama sekarang pasti punya konten
-
-        // Set document content untuk editor (jika ada)
-        if (docData.content) {
-          const bodyMatch = docData.content.match(
-            /<body[^>]*>([\s\S]*)<\/body>/i
-          );
-          setDocumentContent(bodyMatch ? bodyMatch[1] : docData.content);
-        } else {
-          // Fallback jika semua gagal
-          setDocumentContent(generateEditableContent());
-        }
+        setDocument(docData);
+        const fullHtmlContent = docData.content || "";
+        const bodyMatch = fullHtmlContent.match(
+          /<body[^>]*>([\s\S]*?)<\/body>/i
+        );
+        const contentForEditor = bodyMatch ? bodyMatch[1] : fullHtmlContent;
+        setDocumentContent(contentForEditor);
 
         if (docData.data) {
           try {
@@ -194,12 +188,16 @@ const DocumentViewerPage: React.FC = () => {
     `;
   };
 
-  const saveDocumentContent = async (content: string) => {
+  const saveDocumentContent = async (contentFromEditor: string) => {
     if (!id) return;
+    setIsSaving(true);
 
     try {
-      setIsSaving(true);
-
+      if (!documentData) {
+        toast.error("Data dokumen tidak lengkap, tidak bisa menyimpan.");
+        setIsSaving(false);
+        return;
+      }
       // Create full HTML document
       const fullHTML = `
 <!DOCTYPE html>
@@ -343,7 +341,7 @@ const DocumentViewerPage: React.FC = () => {
     </style>
 </head>
 <body>
-${content}
+${contentFromEditor}
 </body>
 </html>`;
 
@@ -354,22 +352,12 @@ ${content}
       );
 
       if (response.data.success) {
-        setDocument((prevDoc) => {
-          if (!prevDoc) return null;
-          return {
-            ...prevDoc,
-            content: fullHTML, // Paksa update konten dengan HTML yang baru
-          };
-        });
-        // setDocumentContent(content);
-        toast.success("Dokumen berhasil disimpan");
-        setPreviewKey((prevKey) => prevKey + 1);
+        toast.success("Dokumen berhasil disimpan!");
         setIsEditing(false);
-
-        // Reload document to refresh preview
-        // await loadDocument();
+        // Panggil loadDocument lagi untuk refresh semua data, termasuk preview
+        await loadDocument();
       } else {
-        toast.error("Gagal menyimpan dokumen");
+        toast.error("Gagal menyimpan dokumen.");
       }
     } catch (error) {
       console.error("Error saving document:", error);
