@@ -186,8 +186,9 @@ const SPH_TEMPLATE = `
                 <p>{{companyAddress}}</p>
             </div>
             <div class="company-logo">
-                <img src="/uploads/logo.png" alt="Company Logo" style="max-height: 50px; width: auto;">
+                <img src="/assets/logoTelkom.png" alt="Company Logo" style="max-height: 50px; width: auto;">
             </div>
+
         </div>
 
         <div style="text-align: right; margin-bottom: 15px;">

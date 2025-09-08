@@ -24,16 +24,11 @@ const DocumentViewerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [documentData, setDocumentData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [showSignatureModal, setShowSignatureModal] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
   const [documentContent, setDocumentContent] = useState<string>("");
   const [previewKey, setPreviewKey] = useState(0);
 
-  const [signatureName, setSignatureName] = useState("");
-  const [signatureTitle, setSignatureTitle] = useState("");
-  const [signatureFile, setSignatureFile] = useState<File | null>(null);
-  const [isApplyingSignature, setIsApplyingSignature] = useState(false);
 
   const documentStyles = `
     body {
@@ -228,111 +223,21 @@ const DocumentViewerPage: React.FC = () => {
     }
   };
 
-  const handleApplySignature = async () => {
-    if (!signatureFile || !signatureName.trim()) {
-      toast.error("Nama penandatangan dan file tanda tangan harus diisi.");
-      return;
-    }
-    if (!document || !document.content) {
-      toast.error("Konten dokumen tidak ditemukan untuk ditandatangani.");
-      return;
-    }
-
-    setIsApplyingSignature(true);
-
-    try {
-      // 1. Konversi file ke Base64
-      const fileToBase64 = (file: File): Promise<string> =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = (error) => reject(error);
-        });
-
-      const base64Data = await fileToBase64(signatureFile);
-
-      // 2. Simpan tanda tangan ke server (menggunakan API yang sudah ada)
-      const fileName = `${Date.now()}-${signatureFile.name}`;
-      const response = (await documentsAPI.saveSignature(
-        base64Data,
-        fileName
-      )) as any;
-
-      if (!response.data.success) {
-        throw new Error("Gagal menyimpan file tanda tangan di server.");
-      }
-
-      const signatureResponse = response.data;
-
-      // 3. Buat blok HTML untuk tanda tangan
-      let titleHTML = "";
-      if (signatureTitle && signatureTitle.trim() !== "") {
-        titleHTML = `<p style="text-transform: capitalize; text-align: center; margin: 0; font-weight: bold; padding-top: 5px;">${signatureTitle}</p>`;
-      }
-
-      const signatureHTML = `
-        <div style="text-align: left; width: 180px; font-size: 11px; margin-top: -20px;">
-            <img src="${signatureResponse.base64Data}" alt="Tanda Tangan ${signatureName}" style="min-width: 180px; height: 60px; margin-bottom: 5px;" />
-            <p style="text-transform: capitalize; text-align: center; margin: 0; font-weight: bold; padding-top: 5px; border-top: 1px solid #000;">${signatureName}</p>
-            ${titleHTML}
-            <p style="text-align: center; margin: 0; font-weight: bold; padding-top: 5px;">PT. Telkom Indonesia</p>
-        </div>
-      `;
-
-      // 4. Ganti placeholder di konten dokumen
-      let updatedContent = document.content;
-      const placeholderRegex =
-        /<div style="text-align: center; width: 180px;[^>]*>[\s\S]*?<p><strong>Nama AM<\/strong><\/p>[\s\S]*?<\/div>/;
-
-      if (placeholderRegex.test(updatedContent)) {
-        updatedContent = updatedContent.replace(
-          placeholderRegex,
-          signatureHTML
-        );
-      } else {
-        // Jika placeholder tidak ada, tambahkan di akhir sebelum tag </body>
-        updatedContent = updatedContent.replace(
-          "</body>",
-          `${signatureHTML}</body>`
-        );
-      }
-
-      // 5. Simpan konten yang sudah diperbarui
-      await saveDocumentContent(updatedContent);
-
-      // 6. Update status dokumen menjadi 'signed'
-      await updateStatus("signed");
-
-      // 7. RELOAD DATA DOKUMEN DARI SERVER (INI BARIS BARUNYA)
-      await loadDocument();
-
-      toast.success(
-        'Tanda tangan berhasil diterapkan! Klik "Update PDF" untuk melihat hasilnya.'
-      );
-
-      // Reset dan tutup modal
-      setShowSignatureModal(false);
-      setSignatureName("");
-      setSignatureTitle("");
-      setSignatureFile(null);
-    } catch (error) {
-      console.error("Error applying signature:", error);
-      toast.error("Gagal menerapkan tanda tangan.");
-    } finally {
-      setIsApplyingSignature(false);
-    }
-  };
 
   const generateEditableContent = () => {
     if (!documentData) return "<p>Loading document content...</p>";
 
     return `
       <div class="container" style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-        <div class="header" style="border-bottom: 3px solid #e60012; padding-bottom: 20px; margin-bottom: 30px;">
-          <h1 style="color: #e60012; margin: 0; font-size: 24px;">PT. Your Company</h1>
-          <p style="margin: 2px 0; font-size: 12px;">Alamat Perusahaan</p>
-          <p style="margin: 2px 0; font-size: 12px;">Telp: +62-21-xxxxxxxx | Email: info@company.com</p>
+        <div class="header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e60012; padding-bottom: 20px; margin-bottom: 30px;">
+          <div>
+            <h1 style="color: #e60012; margin: 0; font-size: 24px;">PT. Telkom Indonesia</h1>
+            <p style="margin: 2px 0; font-size: 12px;">Alamat Perusahaan</p>
+            <p style="margin: 2px 0; font-size: 12px;">Telp: +62-21-xxxxxxxx | Email: info@company.com</p>
+          </div>
+          <div class="company-logo">
+              <img src="/assets/logoTelkom.png" alt="Logo Telkom Indonesia" style="max-height: 50px; width: auto;">
+          </div>
         </div>
 
         <div style="text-align: right; margin-bottom: 20px;">
@@ -650,16 +555,6 @@ ${contentFromEditor}
               {isEditing ? "Selesai Edit" : "Edit Dokumen"}
             </button>
 
-            {document.status !== "signed" && (
-              <button
-                onClick={() => setShowSignatureModal(true)}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Tanda Tangan
-              </button>
-            )}
-
             <button
               onClick={regeneratePDF}
               disabled={isSaving}
@@ -895,86 +790,6 @@ ${contentFromEditor}
           </div>
         )}
 
-        {/* Signature Modal */}
-        {showSignatureModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Tanda Tangan Digital
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Penandatangan
-                  </label>
-                  <input
-                    id="signerName"
-                    type="text"
-                    value={signatureName}
-                    onChange={(e) => setSignatureName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="Masukkan nama lengkap"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Jabatan (Opsional)
-                  </label>
-                  <input
-                    id="signerTitle"
-                    type="text"
-                    value={signatureTitle}
-                    onChange={(e) => setSignatureTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="Contoh: Account Manager"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Upload Tanda Tangan (opsional)
-                  </label>
-                  <input
-                    id="signatureFile"
-                    type="file"
-                    accept="image/png, image/jpeg, image/gif"
-                    onChange={(e) =>
-                      setSignatureFile(
-                        e.target.files ? e.target.files[0] : null
-                      )
-                    }
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                  />
-                  {signatureFile && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      File: {signatureFile.name}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowSignatureModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={handleApplySignature}
-                  className="btn-primary"
-                  disabled={
-                    isApplyingSignature || !signatureFile || !signatureName
-                  }
-                >
-                  {isApplyingSignature ? (
-                    <LoadingSpinner size="sm" />
-                  ) : (
-                    "Terapkan Tanda Tangan"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   );
