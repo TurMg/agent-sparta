@@ -4,7 +4,7 @@ import {
   MessageSquare, 
   FileText, 
   BarChart3, 
- 
+  Smartphone,
   LogOut, 
   Menu, 
   X,
@@ -27,6 +27,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
     { name: 'Chat AI', href: '/chat', icon: MessageSquare },
     { name: 'Dokumen', href: '/documents', icon: FileText },
+    { name: 'WhatsApp', href: '/whatsapp', icon: Smartphone },
+    { name: 'WA Admin', href: '/whatsapp-admin', icon: Smartphone },
   ];
 
   const handleLogout = () => {

@@ -5,7 +5,8 @@ import {
   FileText, 
   Plus, 
   Clock,
-  CheckCircle
+  CheckCircle,
+  Smartphone
 } from 'lucide-react';
 import Layout from '@/components/Layout';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -16,8 +17,8 @@ import { formatDateTime } from '@/utils/format';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [allDocuments, setAllDocuments] = useState<Document[]>([]);
+  const [allSessions, setAllSessions] = useState<ChatSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -29,11 +30,11 @@ const DashboardPage: React.FC = () => {
         ]);
 
         if (docsResponse.data.success) {
-          setDocuments(docsResponse.data.data.slice(0, 5)); // Latest 5 documents
+          setAllDocuments(docsResponse.data.data); // All documents for statistics
         }
 
         if (sessionsResponse.data.success) {
-          setSessions(sessionsResponse.data.data.slice(0, 3)); // Latest 3 sessions
+          setAllSessions(sessionsResponse.data.data); // All sessions for statistics
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -45,10 +46,16 @@ const DashboardPage: React.FC = () => {
     fetchData();
   }, []);
 
+  // Calculate statistics from all data
+  const totalDocuments = allDocuments.length;
+  const sphDocuments = allDocuments.filter(doc => doc.type === 'sph').length;
+  const totalSessions = allSessions.length;
+  const pendingReview = allDocuments.filter(doc => doc.status === 'generated').length;
+
   const stats = [
     {
       name: 'Total Dokumen',
-      value: documents.length.toString(),
+      value: totalDocuments.toString(),
       icon: FileText,
       color: 'bg-blue-500',
       change: '+12%',
@@ -56,7 +63,7 @@ const DashboardPage: React.FC = () => {
     },
     {
       name: 'SPH Dibuat',
-      value: documents.filter(doc => doc.type === 'sph').length.toString(),
+      value: sphDocuments.toString(),
       icon: CheckCircle,
       color: 'bg-green-500',
       change: '+8%',
@@ -64,7 +71,7 @@ const DashboardPage: React.FC = () => {
     },
     {
       name: 'Chat Sessions',
-      value: sessions.length.toString(),
+      value: totalSessions.toString(),
       icon: MessageSquare,
       color: 'bg-purple-500',
       change: '+5%',
@@ -72,7 +79,7 @@ const DashboardPage: React.FC = () => {
     },
     {
       name: 'Pending Review',
-      value: documents.filter(doc => doc.status === 'generated').length.toString(),
+      value: pendingReview.toString(),
       icon: Clock,
       color: 'bg-orange-500',
       change: '-2%',
@@ -174,6 +181,19 @@ const DashboardPage: React.FC = () => {
                   <p className="text-sm text-gray-600">Kelola dokumen SPH Anda</p>
                 </div>
               </Link>
+
+              <Link
+                to="/whatsapp"
+                className="flex items-center p-3 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors duration-200"
+              >
+                <div className="p-2 bg-emerald-600 rounded-lg">
+                  <Smartphone className="h-5 w-5 text-white" />
+                </div>
+                <div className="ml-3">
+                  <p className="font-medium text-gray-900">WhatsApp Integration</p>
+                  <p className="text-sm text-gray-600">Hubungkan AI dengan WhatsApp</p>
+                </div>
+              </Link>
             </div>
           </div>
 
@@ -189,8 +209,8 @@ const DashboardPage: React.FC = () => {
               </Link>
             </div>
             <div className="space-y-3">
-              {sessions.length > 0 ? (
-                sessions.map((session) => (
+              {allSessions.length > 0 ? (
+                allSessions.slice(0, 3).map((session) => (
                   <Link
                     key={session.id}
                     to={`/chat/${session.id}`}
@@ -237,7 +257,7 @@ const DashboardPage: React.FC = () => {
             </Link>
           </div>
           
-          {documents.length > 0 ? (
+          {allDocuments.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -257,7 +277,7 @@ const DashboardPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {documents.map((document) => (
+                  {allDocuments.slice(0, 5).map((document) => (
                     <tr key={document.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Link

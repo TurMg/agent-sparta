@@ -1,5 +1,9 @@
 import mysql from 'mysql2/promise';
 import { promisify } from 'util';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config({ path: '.env' });
 
 // Database connection configuration
 const dbConfig = {
@@ -153,6 +157,33 @@ export async function initDatabase() {
         INDEX idx_role (role)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // Create whatsapp_allowed_numbers table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS whatsapp_allowed_numbers (
+        id VARCHAR(36) PRIMARY KEY,
+        phone VARCHAR(32) UNIQUE NOT NULL,
+        display_name VARCHAR(255),
+        user_id VARCHAR(36),
+        status ENUM('pending','approved','rejected') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Ensure backward compatibility: add user_id column if the table existed before
+    try {
+      const col = await dbGet(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'whatsapp_allowed_numbers' AND COLUMN_NAME = 'user_id'`,
+        [process.env.DB_NAME]
+      );
+      if (!col) {
+        await dbRun(`ALTER TABLE whatsapp_allowed_numbers ADD COLUMN user_id VARCHAR(36) NULL AFTER display_name`);
+        console.log('✅ Added missing column whatsapp_allowed_numbers.user_id');
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not verify/add whatsapp_allowed_numbers.user_id column:', e);
+    }
 
     // Create default admin user if not exists
     const adminExists = await dbGet('SELECT id FROM users WHERE username = ?', ['admin']);

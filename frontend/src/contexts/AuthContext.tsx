@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<boolean>;
-  register: (username: string, email: string, password: string) => Promise<boolean>;
+  register: (username: string, email: string, password: string, phone?: string) => Promise<boolean>;
   logout: () => void;
 }
 
@@ -155,11 +155,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (username: string, email: string, password: string): Promise<boolean> => {
+  const register = async (username: string, email: string, password: string, phone?: string): Promise<boolean> => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       
-      const response = await authAPI.register({ username, email, password });
+      const response = await authAPI.register({ username, email, password, phone });
       
       if (response.data.success) {
         const { user, token } = response.data.data;

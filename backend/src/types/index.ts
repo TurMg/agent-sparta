@@ -69,3 +69,5 @@ export interface MCPToolResponse {
   data?: any;
   error?: string;
 }
+
+

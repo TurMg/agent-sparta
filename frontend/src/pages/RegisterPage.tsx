@@ -9,7 +9,8 @@ const RegisterPage: React.FC = () => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    phone: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -59,6 +60,11 @@ const RegisterPage: React.FC = () => {
       newErrors.confirmPassword = 'Password tidak sama';
     }
 
+    // Optional phone validation (numbers only, intl format without +)
+    if (formData.phone && !/^\d{8,15}$/.test(formData.phone.replace(/[^0-9]/g, ''))) {
+      newErrors.phone = 'Nomor telepon tidak valid';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -72,7 +78,7 @@ const RegisterPage: React.FC = () => {
 
     setIsSubmitting(true);
     
-    const success = await register(formData.username, formData.email, formData.password);
+    const success = await register(formData.username, formData.email, formData.password, formData.phone);
     
     if (!success) {
       setIsSubmitting(false);
@@ -232,6 +238,26 @@ const RegisterPage: React.FC = () => {
           </div>
 
           <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+              Nomor WhatsApp (optional)
+            </label>
+            <input
+              id="phone"
+              name="phone"
+              type="text"
+              autoComplete="tel"
+              value={formData.phone}
+              onChange={handleInputChange}
+              className={`input-field ${errors.phone ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''}`}
+              placeholder="62812xxxxxxx (tanpa +)"
+              disabled={isSubmitting}
+            />
+            {errors.phone && (
+              <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+            )}
+          </div>
+
+          <div>
             <button
               type="submit"
               disabled={isSubmitting}
@@ -251,3 +277,5 @@ const RegisterPage: React.FC = () => {
 };
 
 export default RegisterPage;
+
+
