@@ -26,7 +26,6 @@ const DocumentViewerPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [documentContent, setDocumentContent] = useState<string>("");
-<<<<<<< HEAD
   const [logoDataUrl, setLogoDataUrl] = useState<string>("");
 
   const documentStyles = `
@@ -162,8 +161,6 @@ const DocumentViewerPage: React.FC = () => {
         .container { border: none; box-shadow: none; }
     }
   `;
-=======
->>>>>>> 53fc925c6bab88d36199673c9c410a3fb2dceaf9
 
   useEffect(() => {
     const fetchLogoAndLoadDocument = async () => {
@@ -234,7 +231,6 @@ const DocumentViewerPage: React.FC = () => {
     }
   };
 
-<<<<<<< HEAD
   const generateEditableContent = (data: any, logoSrc: string) => {
     if (!data) return "<p>Loading document content...</p>";
 
@@ -338,8 +334,6 @@ const DocumentViewerPage: React.FC = () => {
       </div>
     `;
   };
-=======
->>>>>>> 53fc925c6bab88d36199673c9c410a3fb2dceaf9
 
   const saveDocumentContent = async (contentFromEditor: string) => {
     if (!id) return;
@@ -762,11 +756,8 @@ ${finalContent}
 
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <iframe
-<<<<<<< HEAD
                     key={document.updatedAt} // Re-render iframe when document is updated
-=======
                     // src={document.filePath.replace(".pdf", ".html")}
->>>>>>> 53fc925c6bab88d36199673c9c410a3fb2dceaf9
                     srcDoc={(document as any).content || ""}
                     className="w-full h-96"
                     title="Document Preview"
