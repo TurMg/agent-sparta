@@ -198,6 +198,19 @@ async function getIntentFromLLM(message: string): Promise<string> {
           "Percakapan umum, sapaan, atau pertanyaan yang tidak terkait dengan pembuatan dokumen.",
         keywords: ["halo", "siapa kamu", "terima kasih", "apa kabar"],
       },
+      {
+        intent: "query_products",
+        description:
+          "Niat untuk menanyakan atau mencari informasi tentang produk yang tersedia.",
+        keywords: [
+          "produk apa saja",
+          "daftar produk",
+          "informasi produk",
+          "cari produk",
+          "harga produk",
+          "spesifikasi produk",
+        ],
+      },
       // Tambahkan intent lain di sini di masa depan
     ];
 
@@ -253,6 +266,10 @@ async function processAIMessage(message: string, userId: string) {
       case "create_sph":
         // Jika niatnya adalah membuat SPH, panggil handler SPH
         return await processSPHRequest(message, userId);
+
+      case "query_products":
+        // Jika niatnya adalah menanyakan produk, panggil handler produk
+        return await processProductQuery(message, userId);
 
       case "general_conversation":
       default:
@@ -512,7 +529,7 @@ async function sendToLLM(message: string): Promise<string> {
     }
 
     const systemInstruction =
-      "Anda adalah asisten AI yang membantu membuat dokumen SPH (Surat Penawaran Harga) dan memberikan informasi terkait layanan internet. Berikan respons yang profesional dan informatif dalam bahasa Indonesia.";
+      "Anda adalah asisten AI yang membantu membuat dokumen SPH (Surat Penawaran Harga), memberikan informasi terkait layanan internet, dan menjawab pertanyaan tentang produk yang tersedia. Berikan respons yang profesional dan informatif dalam bahasa Indonesia.";
 
     const response = await axios.post(
       process.env.LLM_API_URL,
@@ -560,6 +577,58 @@ async function sendToLLM(message: string): Promise<string> {
     }
 
     return "Maaf, terjadi kesalahan dalam menghubungi layanan AI. Silakan coba lagi.";
+  }
+}
+
+// Process product query requests
+async function processProductQuery(message: string, userId: string) {
+  try {
+    // Fetch all products from the database
+    const products = await dbAll('SELECT * FROM products');
+    
+    if (!products || products.length === 0) {
+      return {
+        content: "Saat ini belum ada produk yang tersedia dalam database.",
+        metadata: { type: "product_info", products: [] }
+      };
+    }
+    
+    // Format products data for LLM context
+    const productInfo = products.map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      description: product.description || "Tidak ada deskripsi"
+    }));
+    
+    // Create a prompt for the LLM to generate a response based on product data
+    const productQueryPrompt = `
+Anda adalah asisten AI yang memiliki akses ke daftar produk.
+Gunakan informasi produk berikut untuk menjawab pertanyaan pengguna secara akurat:
+
+Daftar Produk:
+${JSON.stringify(productInfo, null, 2)}
+
+Pertanyaan Pengguna: "${message}"
+
+Harap berikan jawaban yang informatif dan akurat berdasarkan daftar produk yang tersedia. Jangan tampilkan ID.
+`;
+
+    const llmResponse = await sendToLLM(productQueryPrompt);
+    
+    return {
+      content: llmResponse,
+      metadata: {
+        type: "product_info",
+        products: productInfo
+      }
+    };
+  } catch (error) {
+    console.error("Product query processing error:", error);
+    return {
+      content: "Maaf, terjadi kesalahan saat mengambil informasi produk.",
+      metadata: { type: "error", error: error instanceof Error ? error.message : "Unknown error" }
+    };
   }
 }
 

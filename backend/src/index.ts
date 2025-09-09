@@ -7,6 +7,7 @@ import path from 'path';
 import authRoutes from './routes/auth';
 import documentRoutes from './routes/documents';
 import aiRoutes from './routes/ai';
+import productRoutes from './routes/products';
 import { initDatabase, closeConnection } from './database/init';
 import { errorHandler } from './middleware/errorHandler';
 import { startMCPServer } from './mcp/server';
@@ -57,6 +58,7 @@ app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/products', productRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

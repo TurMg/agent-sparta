@@ -11,6 +11,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import ChatPage from '@/pages/ChatPage';
 import DocumentsPage from '@/pages/DocumentsPage';
 import DocumentViewerPage from '@/pages/DocumentViewerPage';
+import ProductsPage from '@/pages/ProductsPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/chat/:sessionId" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
           <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
           <Route path="/documents/:id" element={<ProtectedRoute><DocumentViewerPage /></ProtectedRoute>} />
+          <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

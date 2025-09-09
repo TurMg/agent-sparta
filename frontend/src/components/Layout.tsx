@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  MessageSquare, 
-  FileText, 
-  BarChart3, 
- 
-  LogOut, 
-  Menu, 
+import {
+  MessageSquare,
+  FileText,
+  BarChart3,
+  ShoppingCart,
+  LogOut,
+  Menu,
   X,
   Bot
 } from 'lucide-react';
@@ -27,6 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
     { name: 'Chat AI', href: '/chat', icon: MessageSquare },
     { name: 'Dokumen', href: '/documents', icon: FileText },
+    { name: 'Products', href: '/products', icon: ShoppingCart },
   ];
 
   const handleLogout = () => {
