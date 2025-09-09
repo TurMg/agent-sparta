@@ -223,6 +223,14 @@ const DocumentEditorTinyMCE: React.FC<DocumentEditorTinyMCEProps> = ({
     }
   };
 
+  const handleToggleSignaturePad = () => {
+    if (showPreview) {
+      setShowPreview(false);
+      toast.success("Mode visual dinonaktifkan untuk menambahkan tanda tangan.");
+    }
+    setShowSignaturePad(true);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
@@ -234,7 +242,7 @@ const DocumentEditorTinyMCE: React.FC<DocumentEditorTinyMCEProps> = ({
           {isLoading ? "Menyimpan..." : "💾 Simpan"}
         </button>
         <button
-          onClick={() => setShowSignaturePad(true)}
+          onClick={handleToggleSignaturePad}
           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
         >
           ✍️ Tambah Tanda Tangan

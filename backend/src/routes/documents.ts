@@ -137,10 +137,32 @@ router.patch('/:id/content', authenticateToken, async (req: AuthRequest, res) =>
       return res.status(400).json({ error: 'Content is required' });
     }
 
-    // Update content in database
+    // --- Start Logo Embedding Logic ---
+    const path = require('path');
+    const fs = require('fs');
+    let processedContent = content;
+
+    try {
+      const logoPath = path.resolve(process.cwd(), 'src', 'assets', 'logoTelkom.png');
+      if (fs.existsSync(logoPath)) {
+        const logoBuffer = fs.readFileSync(logoPath);
+        const logoBase64 = logoBuffer.toString('base64');
+        const logoDataUrl = `data:image/png;base64,${logoBase64}`;
+        
+        processedContent = content.replace(/src=(?:"|')\/assets\/logoTelkom\.png(?:"|')/g, `src="${logoDataUrl}"`);
+        console.log('✅ Logo embedded successfully into HTML content.');
+      } else {
+        console.warn('⚠️ Backend logo file not found at', logoPath);
+      }
+    } catch (e) {
+      console.error('Error embedding logo:', e);
+    }
+    // --- End Logo Embedding Logic ---
+
+    // Update content in database with the processed content
     const result = await dbRun(
       'UPDATE documents SET content = ?, data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
-      [content, data ? JSON.stringify(data) : null, req.params.id, req.user!.id]
+      [processedContent, data ? JSON.stringify(data) : null, req.params.id, req.user!.id]
     );
 
     if (result.affectedRows === 0) {
@@ -149,11 +171,6 @@ router.patch('/:id/content', authenticateToken, async (req: AuthRequest, res) =>
 
     // Save updated HTML file and regenerate PDF
     try {
-      const path = require('path');
-      const fs = require('fs');
-      const puppeteer = require('puppeteer');
-      
-      // Use absolute path to ensure consistency between dev and production
       const uploadsDir = path.resolve(process.cwd(), 'uploads');
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
@@ -162,30 +179,22 @@ router.patch('/:id/content', authenticateToken, async (req: AuthRequest, res) =>
       const htmlPath = path.join(uploadsDir, `sph-${req.params.id}.html`);
       const pdfPath = path.join(uploadsDir, `sph-${req.params.id}.pdf`);
 
-      console.log('📝 Saving edited document to:', { uploadsDir, htmlPath, pdfPath });
+      fs.writeFileSync(htmlPath, processedContent);
 
-      // Save HTML file
-      fs.writeFileSync(htmlPath, content);
-      console.log('✅ HTML file saved successfully');
-
-      // Regenerate PDF with better settings for images/signatures
+      const puppeteer = require('puppeteer');
       const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security']
       });
       
       const page = await browser.newPage();
-      
-      // Set viewport for consistent rendering
       await page.setViewport({ width: 1200, height: 800 });
       
-      // Load content and wait for images (signatures) to load
-      await page.setContent(content, { 
+      await page.setContent(processedContent, { 
         waitUntil: 'networkidle0',
         timeout: 30000 
       });
       
-      // Wait for signature images to render properly
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       await page.pdf({
@@ -203,27 +212,15 @@ router.patch('/:id/content', authenticateToken, async (req: AuthRequest, res) =>
       });
 
       await browser.close();
-      console.log('🔄 PDF generation completed');
       
-      // Verify PDF file was created
-      if (fs.existsSync(pdfPath)) {
-        console.log('✅ PDF file verified:', pdfPath);
-        const stats = fs.statSync(pdfPath);
-        console.log('📊 PDF file size:', stats.size, 'bytes');
-      } else {
-        console.error('❌ PDF file not found after generation:', pdfPath);
-      }
-      
-      // Update file_path in database to ensure it points to updated PDF
       await dbRun(
         'UPDATE documents SET file_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
         [`/uploads/sph-${req.params.id}.pdf`, req.params.id, req.user!.id]
       );
       
-      console.log('✅ Document updated and PDF regenerated');
+      console.log('✅ Document updated and PDF regenerated with embedded logo');
     } catch (fileError) {
       console.error('Error updating files:', fileError);
-      // Continue even if file update fails
     }
 
     const updatedDocument = await dbGet(
@@ -294,15 +291,34 @@ router.post('/:id/regenerate-pdf', authenticateToken, async (req: AuthRequest, r
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    const content = document.content || '';
+    let content = document.content || '';
     
     if (!content) {
       return res.status(400).json({ error: 'No content to generate PDF from' });
     }
 
     const path = require('path');
+    const fs = require('fs');
     const puppeteer = require('puppeteer');
     
+    // --- Start Logo Embedding Logic ---
+    try {
+      const logoPath = path.resolve(process.cwd(), 'src', 'assets', 'logoTelkom.png');
+      if (fs.existsSync(logoPath)) {
+        const logoBuffer = fs.readFileSync(logoPath);
+        const logoBase64 = logoBuffer.toString('base64');
+        const logoDataUrl = `data:image/png;base64,${logoBase64}`;
+        
+        content = content.replace(/src=(?:"|')\/assets\/logoTelkom\.png(?:"|')/g, `src="${logoDataUrl}"`);
+        console.log('✅ Logo embedded successfully into HTML content for PDF regeneration.');
+      } else {
+        console.warn('⚠️ Backend logo file not found at', logoPath);
+      }
+    } catch (e) {
+      console.error('Error embedding logo for PDF regeneration:', e);
+    }
+    // --- End Logo Embedding Logic ---
+
     const uploadsDir = path.resolve(process.cwd(), 'uploads');
     const pdfPath = path.join(uploadsDir, `sph-${req.params.id}.pdf`);
 
