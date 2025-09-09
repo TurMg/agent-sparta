@@ -37,7 +37,7 @@ export const authAPI = {
   login: (credentials: { username: string; password: string }) =>
     api.post<APIResponse>('/auth/login', credentials),
   
-  register: (data: { username: string; email: string; password: string; role?: string }) =>
+  register: (data: { username: string; email: string; password: string; role?: string; phone?: string }) =>
     api.post<APIResponse>('/auth/register', data),
   
   getMe: () => api.get<APIResponse>('/auth/me'),
@@ -81,3 +81,11 @@ export const aiAPI = {
 };
 
 export default api;
+
+// WhatsApp Admin API
+export const whatsappAPI = {
+  getNumbers: () => api.get<APIResponse>('/whatsapp/numbers'),
+  register: (phone: string, name?: string) => api.post<APIResponse>('/whatsapp/numbers/register', { phone, name }),
+  approve: (phone: string) => api.post<APIResponse>(`/whatsapp/numbers/${phone}/approve`),
+  reject: (phone: string) => api.post<APIResponse>(`/whatsapp/numbers/${phone}/reject`),
+};

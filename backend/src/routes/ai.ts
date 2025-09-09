@@ -387,3 +387,6 @@ async function sendToLLM(message: string): Promise<string> {
 }
 
 export default router;
+
+// Export AI processor for backend integrations (e.g., WhatsApp)
+export { processAIMessage };

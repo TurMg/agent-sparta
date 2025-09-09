@@ -28,7 +28,6 @@ const DocumentViewerPage: React.FC = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [documentContent, setDocumentContent] = useState<string>("");
-  const [previewKey, setPreviewKey] = useState(0);
 
   useEffect(() => {
     if (id) {
@@ -89,104 +88,6 @@ const DocumentViewerPage: React.FC = () => {
     }
   };
 
-  const generateEditableContent = () => {
-    if (!documentData) return "<p>Loading document content...</p>";
-
-    return `
-      <div class="container" style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-        <div class="header" style="border-bottom: 3px solid #e60012; padding-bottom: 20px; margin-bottom: 30px;">
-          <h1 style="color: #e60012; margin: 0; font-size: 24px;">PT. Your Company</h1>
-          <p style="margin: 2px 0; font-size: 12px;">Alamat Perusahaan</p>
-          <p style="margin: 2px 0; font-size: 12px;">Telp: +62-21-xxxxxxxx | Email: info@company.com</p>
-        </div>
-
-        <div style="text-align: right; margin-bottom: 20px;">
-          <p><strong>${formatDateTime(documentData.sphDate)}</strong></p>
-        </div>
-
-        <div style="margin-bottom: 30px;">
-          <p><strong>Kepada Yth.</strong></p>
-          <p><strong>${documentData.customerName}</strong></p>
-          <p><strong>Di tempat</strong></p>
-          <br>
-          <p><strong>Perihal : Surat Penawaran Harga Layanan Internet</strong></p>
-          <p><strong>Lampiran : -</strong></p>
-        </div>
-
-        <p>Dengan hormat,</p>
-        <p>Kami mengucapkan terima kasih atas kepercayaan yang diberikan kepada <strong>PT. Your Company</strong> untuk dapat bekerjasama dengan <strong>${
-          documentData.customerName
-        }</strong> dalam layanan Internet Dedicated Astinet.</p>
-
-        <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
-          <thead>
-            <tr style="background-color: #c41e3a; color: white;">
-              <th style="border: 1px solid #000; padding: 10px;">NO</th>
-              <th style="border: 1px solid #000; padding: 10px;">Layanan</th>
-              <th style="border: 1px solid #000; padding: 10px;">Jumlah</th>
-              <th style="border: 1px solid #000; padding: 10px;">Biaya PSB</th>
-              <th style="border: 1px solid #000; padding: 10px;">Biaya Normal</th>
-              <th style="border: 1px solid #000; padding: 10px;">Biaya Diskon</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${
-              documentData.services
-                ?.map(
-                  (service: any, index: number) => `
-              <tr>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${
-                  index + 1
-                }</td>
-                <td style="border: 1px solid #000; padding: 10px;">${
-                  service.serviceName
-                }</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${
-                  service.connectionCount
-                }</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
-                  service.psbFee
-                )}</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
-                  service.monthlyFeeNormal
-                )}</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
-                  service.monthlyFeeDiscount
-                )}</td>
-              </tr>
-            `
-                )
-                .join("") || ""
-            }
-          </tbody>
-        </table>
-
-        <div style="margin: 30px 0;">
-          <p><strong>Syarat dan Ketentuan:</strong></p>
-          <ol>
-            <li>Belum termasuk PPN.</li>
-            <li>Est. Delivery time layanan 30 hari kalender sejak penandatanganan Kontrak Berlangganan (KB).</li>
-            <li>Penawaran berlaku selama 14 hari kalender sejak penawaran dikeluarkan.</li>
-            <li>Penawaran bersifat terbatas/rahasia tidak diperkenankan disebarluaskan.</li>
-          </ol>
-        </div>
-
-        <p>Demikian disampaikan dari surat penawaran harga ini, agar dapat menjadi bahan dasar pertimbangan oleh pihak manajemen <strong>${
-          documentData.customerName
-        }</strong>.</p>
-
-        <p style="margin-top: 30px;">Hormat kami,</p>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 40px;">
-            <div style="text-align: center; width: 180px;">
-                <div style="height: 50px; border-bottom: 1px solid #000; margin-bottom: 8px;"></div>
-                <p><strong>Nama AM</strong></p>
-                <p><strong>PT. Your Company</strong></p>
-            </div>
-        </div>
-      </div>
-    `;
-  };
 
   const saveDocumentContent = async (contentFromEditor: string) => {
     if (!id) return;
@@ -756,7 +657,6 @@ ${contentFromEditor}
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <iframe
                     // src={document.filePath.replace(".pdf", ".html")}
-                    key={previewKey}
                     srcDoc={(document as any).content || ""}
                     className="w-full h-96"
                     title="Document Preview"

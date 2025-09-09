@@ -10,7 +10,7 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, role = 'user' } = req.body;
+    const { username, email, password, role = 'user', phone } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Username, email, and password are required' });
@@ -35,6 +35,15 @@ router.post('/register', async (req, res) => {
       INSERT INTO users (id, username, email, password, role)
       VALUES (?, ?, ?, ?, ?)
     `, [userId, username, email, hashedPassword, role]);
+
+    // Optional phone registration (pending approval)
+    if (phone) {
+      try {
+        await dbRun(`INSERT INTO whatsapp_allowed_numbers (id, phone, display_name, user_id, status) VALUES (?, ?, ?, ?, 'pending')`, [uuidv4(), String(phone).replace(/[^0-9]/g, ''), username, userId]);
+      } catch (e) {
+        // ignore duplicate phone errors
+      }
+    }
 
     // Generate JWT token
     const token = jwt.sign(
@@ -151,3 +160,5 @@ router.post('/refresh', authenticateToken, async (req: AuthRequest, res) => {
 });
 
 export default router;
+
+
