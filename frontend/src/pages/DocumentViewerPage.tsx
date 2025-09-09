@@ -24,10 +24,9 @@ const DocumentViewerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [documentData, setDocumentData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
-
   const [isSaving, setIsSaving] = useState(false);
   const [documentContent, setDocumentContent] = useState<string>("");
-  const [previewKey, setPreviewKey] = useState(0);
+  const [logoDataUrl, setLogoDataUrl] = useState<string>("");
 
   const documentStyles = `
     body {
@@ -164,40 +163,37 @@ const DocumentViewerPage: React.FC = () => {
   `;
 
   useEffect(() => {
-    if (id) {
-      loadDocument();
-    }
+    const fetchLogoAndLoadDocument = async () => {
+      try {
+        const response = await fetch("/assets/logoTelkom.png");
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          setLogoDataUrl(base64data);
+          if (id) {
+            loadDocument(base64data);
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error("Failed to load logo, proceeding without it.", error);
+        if (id) {
+          loadDocument(""); // Load document even if logo fails
+        }
+      }
+    };
+
+    fetchLogoAndLoadDocument();
   }, [id]);
 
-  const loadDocument = async () => {
+  const loadDocument = async (logoUrl: string) => {
     if (!id) return;
-    setIsLoading(true); // Set loading di awal
+    setIsLoading(true);
     try {
       const response = await documentsAPI.getById(id);
       if (response.data.success) {
         const docData = response.data.data;
-
-        // Logika fetch konten HTML jika kosong
-        if (!docData.content && docData.filePath) {
-          console.log("Konten kosong, fetching dari file HTML...");
-          const htmlPath = docData.filePath.replace(".pdf", ".html");
-          try {
-            const htmlResponse = await fetch(htmlPath);
-            if (htmlResponse.ok) {
-              docData.content = await htmlResponse.text();
-            }
-          } catch (fetchError) {
-            console.error("Gagal fetch konten HTML:", fetchError);
-          }
-        }
-
-        setDocument(docData);
-        const fullHtmlContent = docData.content || "";
-        const bodyMatch = fullHtmlContent.match(
-          /<body[^>]*>([\s\S]*?)<\/body>/i
-        );
-        const contentForEditor = bodyMatch ? bodyMatch[1] : fullHtmlContent;
-        setDocumentContent(contentForEditor);
 
         if (docData.data) {
           try {
@@ -206,11 +202,24 @@ const DocumentViewerPage: React.FC = () => {
                 ? JSON.parse(docData.data)
                 : docData.data;
             setDocumentData(parsedData);
+
+            let contentForEditor = docData.content;
+            if (!contentForEditor) {
+              contentForEditor = generateEditableContent(parsedData, logoUrl);
+            }
+            
+            const bodyMatch = contentForEditor.match(
+              /<body[^>]*>([\s\S]*?)<\/body>/i
+            );
+            const finalContent = bodyMatch ? bodyMatch[1] : contentForEditor;
+            setDocumentContent(finalContent);
+
           } catch (error) {
             console.error("Error parsing document data:", error);
             setDocumentData(null);
           }
         }
+        setDocument(docData);
       } else {
         toast.error("Dokumen tidak ditemukan");
       }
@@ -222,8 +231,8 @@ const DocumentViewerPage: React.FC = () => {
     }
   };
 
-  const generateEditableContent = () => {
-    if (!documentData) return "<p>Loading document content...</p>";
+  const generateEditableContent = (data: any, logoSrc: string) => {
+    if (!data) return "<p>Loading document content...</p>";
 
     return `
       <div class="container" style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
@@ -234,17 +243,17 @@ const DocumentViewerPage: React.FC = () => {
             <p style="margin: 2px 0; font-size: 12px;">Telp: +62-21-xxxxxxxx | Email: info@company.com</p>
           </div>
           <div class="company-logo">
-              <img src="/assets/logoTelkom.png" alt="Logo Telkom Indonesia" style="max-height: 50px; width: auto;">
+              <img src="${logoSrc}" alt="Logo Telkom Indonesia" style="max-height: 50px; width: auto;">
           </div>
         </div>
 
         <div style="text-align: right; margin-bottom: 20px;">
-          <p><strong>${formatDateTime(documentData.sphDate)}</strong></p>
+          <p><strong>${formatDateTime(data.sphDate)}</strong></p>
         </div>
 
         <div style="margin-bottom: 30px;">
           <p><strong>Kepada Yth.</strong></p>
-          <p><strong>${documentData.customerName}</strong></p>
+          <p><strong>${data.customerName}</strong></p>
           <p><strong>Di tempat</strong></p>
           <br>
           <p><strong>Perihal : Surat Penawaran Harga Layanan Internet</strong></p>
@@ -253,7 +262,7 @@ const DocumentViewerPage: React.FC = () => {
 
         <p>Dengan hormat,</p>
         <p>Kami mengucapkan terima kasih atas kepercayaan yang diberikan kepada <strong>PT. Your Company</strong> untuk dapat bekerjasama dengan <strong>${
-          documentData.customerName
+          data.customerName
         }</strong> dalam layanan Internet Dedicated Astinet.</p>
 
         <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
@@ -269,7 +278,7 @@ const DocumentViewerPage: React.FC = () => {
           </thead>
           <tbody>
             ${
-              documentData.services
+              data.services
                 ?.map(
                   (service: any, index: number) => `
               <tr>
@@ -310,7 +319,7 @@ const DocumentViewerPage: React.FC = () => {
         </div>
 
         <p>Demikian disampaikan dari surat penawaran harga ini, agar dapat menjadi bahan dasar pertimbangan oleh pihak manajemen <strong>${
-          documentData.customerName
+          data.customerName
         }</strong>.</p>
 
         <p style="margin-top: 30px;">Hormat kami,</p>
@@ -336,7 +345,16 @@ const DocumentViewerPage: React.FC = () => {
         setIsSaving(false);
         return;
       }
-      // Create full HTML document
+
+      let finalContent = contentFromEditor;
+      // Ensure the logo is using the data URL before saving
+      if (logoDataUrl && !finalContent.includes(logoDataUrl)) {
+        finalContent = finalContent.replace(
+          'src="/assets/logoTelkom.png"',
+          `src="${logoDataUrl}"`
+        );
+      }
+
       const fullHTML = `
 <!DOCTYPE html>
 <html lang="id">
@@ -347,7 +365,7 @@ const DocumentViewerPage: React.FC = () => {
     <style>${documentStyles}</style>
 </head>
 <body>
-${contentFromEditor}
+${finalContent}
 </body>
 </html>`;
 
@@ -360,8 +378,7 @@ ${contentFromEditor}
       if (response.data.success) {
         toast.success("Dokumen berhasil disimpan!");
         setIsEditing(false);
-        // Panggil loadDocument lagi untuk refresh semua data, termasuk preview
-        await loadDocument();
+        await loadDocument(logoDataUrl);
       } else {
         toast.error("Gagal menyimpan dokumen.");
       }
@@ -373,6 +390,7 @@ ${contentFromEditor}
     }
   };
 
+  // ... (rest of the functions: regeneratePDF, updateStatus, getStatusColor, etc. remain the same)
   const regeneratePDF = async () => {
     if (!id) return;
 
@@ -389,7 +407,7 @@ ${contentFromEditor}
         );
 
         // Reload document to get updated file path
-        await loadDocument();
+        await loadDocument(logoDataUrl);
       } else {
         toast.dismiss();
         toast.error("Gagal regenerate PDF");
@@ -565,7 +583,7 @@ ${contentFromEditor}
             <DocumentEditorTinyMCE
               editableContent={documentContent}
               documentStyles={documentStyles}
-              onContentChange={setDocumentContent}
+              onContentChange={(newContent) => setDocumentContent(newContent)}
               onSave={() => saveDocumentContent(documentContent)}
               isLoading={isSaving}
             />
@@ -738,8 +756,7 @@ ${contentFromEditor}
 
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <iframe
-                    // src={document.filePath.replace(".pdf", ".html")}
-                    key={previewKey}
+                    key={document.updatedAt} // Re-render iframe when document is updated
                     srcDoc={(document as any).content || ""}
                     className="w-full h-96"
                     title="Document Preview"
