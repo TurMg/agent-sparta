@@ -186,8 +186,9 @@ const SPH_TEMPLATE = `
                 <p>{{companyAddress}}</p>
             </div>
             <div class="company-logo">
-                <img src="/uploads/logo.png" alt="Company Logo" style="max-height: 50px; width: auto;">
+                <img src="{{logoDataUrl}}" alt="Company Logo" style="max-height: 50px; width: auto;">
             </div>
+
         </div>
 
         <div style="text-align: right; margin-bottom: 15px;">
@@ -274,8 +275,14 @@ export async function generateSPHDocument(data: SPHData) {
     const template = handlebars.compile(SPH_TEMPLATE);
 
     // Prepare template data
+    const logoPath = path.resolve(process.cwd(), 'src', 'assets', 'logoTelkom.png');
+    const logoBuffer = fs.readFileSync(logoPath);
+    const logoBase64 = logoBuffer.toString('base64');
+    const logoDataUrl = `data:image/png;base64,${logoBase64}`;
+
     const templateData = {
       ...data,
+      logoDataUrl,
       companyName: process.env.COMPANY_NAME || "PT. Your Company",
       companyAddress: process.env.COMPANY_ADDRESS || "Alamat Perusahaan",
       companyPhone: process.env.COMPANY_PHONE || "+62-21-xxxxxxxx",

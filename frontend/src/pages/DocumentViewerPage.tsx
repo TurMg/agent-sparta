@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Layout from "@/components/Layout";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import DocumentEditorMonaco from "@/components/DocumentEditorMonaco";
+import DocumentEditorTinyMCE from "@/components/DocumentEditorTinyMCE";
 import { documentsAPI } from "@/utils/api";
 import { Document } from "@/types";
 import { formatDateTime, formatCurrency } from "@/utils/format";
@@ -24,46 +24,179 @@ const DocumentViewerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [documentData, setDocumentData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [showSignatureModal, setShowSignatureModal] = useState(false);
-
   const [isSaving, setIsSaving] = useState(false);
   const [documentContent, setDocumentContent] = useState<string>("");
+<<<<<<< HEAD
+  const [logoDataUrl, setLogoDataUrl] = useState<string>("");
+
+  const documentStyles = `
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 15px;
+        background-color: #fff;
+        color: #333;
+        line-height: 1.3;
+        font-size: 11px;
+    }
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border: none;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+    .company-logo {
+        text-align: right;
+    }
+    .company-logo img {
+        max-height: 50px;
+        width: auto;
+        object-fit: contain;
+    }
+    .company-info {
+        flex: 1;
+    }
+    .company-info h1 {
+        color: #333;
+        margin: 0;
+        font-size: 18px;
+        font-weight: bold;
+    }
+    .company-info p {
+        margin: 2px 0;
+        color: #333;
+        font-size: 10px;
+    }
+    .document-title {
+        text-align: center;
+        font-size: 16px;
+        font-weight: bold;
+        margin: 20px 0;
+        text-decoration: underline;
+    }
+    .customer-info {
+        margin-bottom: 20px;
+    }
+    .customer-info table {
+        width: 100%;
+    }
+    .customer-info td {
+        padding: 3px 0;
+        vertical-align: top;
+    }
+    .customer-info td:first-child {
+        width: 120px;
+        font-weight: bold;
+    }
+    .services-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 10px;
+    }
+    .services-table th,
+    .services-table td {
+        border: 1px solid #000;
+        padding: 6px 4px;
+        text-align: center;
+    }
+    .services-table th {
+        background-color: #c41e3a;
+        color: white;
+        font-weight: bold;
+    }
+    .services-table .number {
+        text-align: center;
+        width: 40px;
+    }
+    .services-table .currency {
+        text-align: center;
+    }
+    .total-row {
+        background-color: #f9f9f9;
+        font-weight: bold;
+    }
+    .notes {
+        margin: 15px 0;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border-left: 3px solid #c41e3a;
+    }
+    .signature-section {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .signature-box {
+        text-align: center;
+        width: 180px;
+    }
+    .signature-line {
+        border-bottom: 1px solid #000;
+        margin: 10px 0 8px 0;
+    }
+    .footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 10px;
+        color: #666;
+        border-top: 1px solid #ccc;
+        padding-top: 10px;
+    }
+    @media print {
+        body { margin: 0; }
+        .container { border: none; }
+        @page { margin: 12mm; }
+    }
+    @media print {
+        body { margin: 0; }
+        .container { border: none; box-shadow: none; }
+    }
+  `;
+=======
+>>>>>>> 53fc925c6bab88d36199673c9c410a3fb2dceaf9
 
   useEffect(() => {
-    if (id) {
-      loadDocument();
-    }
+    const fetchLogoAndLoadDocument = async () => {
+      try {
+        const response = await fetch("/assets/logoTelkom.png");
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          setLogoDataUrl(base64data);
+          if (id) {
+            loadDocument(base64data);
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error("Failed to load logo, proceeding without it.", error);
+        if (id) {
+          loadDocument(""); // Load document even if logo fails
+        }
+      }
+    };
+
+    fetchLogoAndLoadDocument();
   }, [id]);
 
-  const loadDocument = async () => {
+  const loadDocument = async (logoUrl: string) => {
     if (!id) return;
-    setIsLoading(true); // Set loading di awal
+    setIsLoading(true);
     try {
       const response = await documentsAPI.getById(id);
       if (response.data.success) {
         const docData = response.data.data;
-
-        // Logika fetch konten HTML jika kosong
-        if (!docData.content && docData.filePath) {
-          console.log("Konten kosong, fetching dari file HTML...");
-          const htmlPath = docData.filePath.replace(".pdf", ".html");
-          try {
-            const htmlResponse = await fetch(htmlPath);
-            if (htmlResponse.ok) {
-              docData.content = await htmlResponse.text();
-            }
-          } catch (fetchError) {
-            console.error("Gagal fetch konten HTML:", fetchError);
-          }
-        }
-
-        setDocument(docData);
-        const fullHtmlContent = docData.content || "";
-        const bodyMatch = fullHtmlContent.match(
-          /<body[^>]*>([\s\S]*?)<\/body>/i
-        );
-        const contentForEditor = bodyMatch ? bodyMatch[1] : fullHtmlContent;
-        setDocumentContent(contentForEditor);
 
         if (docData.data) {
           try {
@@ -72,11 +205,24 @@ const DocumentViewerPage: React.FC = () => {
                 ? JSON.parse(docData.data)
                 : docData.data;
             setDocumentData(parsedData);
+
+            let contentForEditor = docData.content;
+            if (!contentForEditor) {
+              contentForEditor = generateEditableContent(parsedData, logoUrl);
+            }
+            
+            const bodyMatch = contentForEditor.match(
+              /<body[^>]*>([\s\S]*?)<\/body>/i
+            );
+            const finalContent = bodyMatch ? bodyMatch[1] : contentForEditor;
+            setDocumentContent(finalContent);
+
           } catch (error) {
             console.error("Error parsing document data:", error);
             setDocumentData(null);
           }
         }
+        setDocument(docData);
       } else {
         toast.error("Dokumen tidak ditemukan");
       }
@@ -88,6 +234,112 @@ const DocumentViewerPage: React.FC = () => {
     }
   };
 
+<<<<<<< HEAD
+  const generateEditableContent = (data: any, logoSrc: string) => {
+    if (!data) return "<p>Loading document content...</p>";
+
+    return `
+      <div class="container" style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+        <div class="header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e60012; padding-bottom: 20px; margin-bottom: 30px;">
+          <div>
+            <h1 style="color: #e60012; margin: 0; font-size: 24px;">PT. Telkom Indonesia</h1>
+            <p style="margin: 2px 0; font-size: 12px;">Alamat Perusahaan</p>
+            <p style="margin: 2px 0; font-size: 12px;">Telp: +62-21-xxxxxxxx | Email: info@company.com</p>
+          </div>
+          <div class="company-logo">
+              <img src="${logoSrc}" alt="Logo Telkom Indonesia" style="max-height: 50px; width: auto;">
+          </div>
+        </div>
+
+        <div style="text-align: right; margin-bottom: 20px;">
+          <p><strong>${formatDateTime(data.sphDate)}</strong></p>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <p><strong>Kepada Yth.</strong></p>
+          <p><strong>${data.customerName}</strong></p>
+          <p><strong>Di tempat</strong></p>
+          <br>
+          <p><strong>Perihal : Surat Penawaran Harga Layanan Internet</strong></p>
+          <p><strong>Lampiran : -</strong></p>
+        </div>
+
+        <p>Dengan hormat,</p>
+        <p>Kami mengucapkan terima kasih atas kepercayaan yang diberikan kepada <strong>PT. Your Company</strong> untuk dapat bekerjasama dengan <strong>${
+          data.customerName
+        }</strong> dalam layanan Internet Dedicated Astinet.</p>
+
+        <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
+          <thead>
+            <tr style="background-color: #c41e3a; color: white;">
+              <th style="border: 1px solid #000; padding: 10px;">NO</th>
+              <th style="border: 1px solid #000; padding: 10px;">Layanan</th>
+              <th style="border: 1px solid #000; padding: 10px;">Jumlah</th>
+              <th style="border: 1px solid #000; padding: 10px;">Biaya PSB</th>
+              <th style="border: 1px solid #000; padding: 10px;">Biaya Normal</th>
+              <th style="border: 1px solid #000; padding: 10px;">Biaya Diskon</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              data.services
+                ?.map(
+                  (service: any, index: number) => `
+              <tr>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${
+                  index + 1
+                }</td>
+                <td style="border: 1px solid #000; padding: 10px;">${
+                  service.serviceName
+                }</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${
+                  service.connectionCount
+                }</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
+                  service.psbFee
+                )}</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
+                  service.monthlyFeeNormal
+                )}</td>
+                <td style="border: 1px solid #000; padding: 10px; text-align: center;">${formatCurrency(
+                  service.monthlyFeeDiscount
+                )}</td>
+              </tr>
+            `
+                )
+                .join("") || ""
+            }
+          </tbody>
+        </table>
+
+        <div style="margin: 30px 0;">
+          <p><strong>Syarat dan Ketentuan:</strong></p>
+          <ol>
+            <li>Belum termasuk PPN.</li>
+            <li>Est. Delivery time layanan 30 hari kalender sejak penandatanganan Kontrak Berlangganan (KB).</li>
+            <li>Penawaran berlaku selama 14 hari kalender sejak penawaran dikeluarkan.</li>
+            <li>Penawaran bersifat terbatas/rahasia tidak diperkenankan disebarluaskan.</li>
+          </ol>
+        </div>
+
+        <p>Demikian disampaikan dari surat penawaran harga ini, agar dapat menjadi bahan dasar pertimbangan oleh pihak manajemen <strong>${
+          data.customerName
+        }</strong>.</p>
+
+        <p style="margin-top: 30px;">Hormat kami,</p>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+            <div style="text-align: center; width: 180px;">
+                <div style="height: 50px; border-bottom: 1px solid #000; margin-bottom: 8px;"></div>
+                <p><strong>Nama AM</strong></p>
+                <p><strong>PT. Your Company</strong></p>
+            </div>
+        </div>
+      </div>
+    `;
+  };
+=======
+>>>>>>> 53fc925c6bab88d36199673c9c410a3fb2dceaf9
 
   const saveDocumentContent = async (contentFromEditor: string) => {
     if (!id) return;
@@ -99,7 +351,16 @@ const DocumentViewerPage: React.FC = () => {
         setIsSaving(false);
         return;
       }
-      // Create full HTML document
+
+      let finalContent = contentFromEditor;
+      // Ensure the logo is using the data URL before saving
+      if (logoDataUrl && !finalContent.includes(logoDataUrl)) {
+        finalContent = finalContent.replace(
+          'src="/assets/logoTelkom.png"',
+          `src="${logoDataUrl}"`
+        );
+      }
+
       const fullHTML = `
 <!DOCTYPE html>
 <html lang="id">
@@ -107,142 +368,10 @@ const DocumentViewerPage: React.FC = () => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SPH - ${documentData?.customerName}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 15px;
-            background-color: #fff;
-            color: #333;
-            line-height: 1.3;
-            font-size: 11px;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border: none;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-        .company-logo {
-            text-align: right;
-        }
-        .company-logo img {
-            max-height: 50px;
-            width: auto;
-            object-fit: contain;
-        }
-        .company-info {
-            flex: 1;
-        }
-        .company-info h1 {
-            color: #333;
-            margin: 0;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .company-info p {
-            margin: 2px 0;
-            color: #333;
-            font-size: 10px;
-        }
-        .document-title {
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-            margin: 20px 0;
-            text-decoration: underline;
-        }
-        .customer-info {
-            margin-bottom: 20px;
-        }
-        .customer-info table {
-            width: 100%;
-        }
-        .customer-info td {
-            padding: 3px 0;
-            vertical-align: top;
-        }
-        .customer-info td:first-child {
-            width: 120px;
-            font-weight: bold;
-        }
-        .services-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 10px;
-        }
-        .services-table th,
-        .services-table td {
-            border: 1px solid #000;
-            padding: 6px 4px;
-            text-align: center;
-        }
-        .services-table th {
-            background-color: #c41e3a;
-            color: white;
-            font-weight: bold;
-        }
-        .services-table .number {
-            text-align: center;
-            width: 40px;
-        }
-        .services-table .currency {
-            text-align: center;
-        }
-        .total-row {
-            background-color: #f9f9f9;
-            font-weight: bold;
-        }
-        .notes {
-            margin: 15px 0;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-left: 3px solid #c41e3a;
-        }
-        .signature-section {
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .signature-box {
-            text-align: center;
-            width: 180px;
-        }
-        .signature-line {
-            border-bottom: 1px solid #000;
-            margin: 10px 0 8px 0;
-        }
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
-        }
-        @media print {
-            body { margin: 0; }
-            .container { border: none; }
-            @page { margin: 12mm; }
-        }
-        @media print {
-            body { margin: 0; }
-            .container { border: none; box-shadow: none; }
-        }
-    </style>
+    <style>${documentStyles}</style>
 </head>
 <body>
-${contentFromEditor}
+${finalContent}
 </body>
 </html>`;
 
@@ -255,8 +384,7 @@ ${contentFromEditor}
       if (response.data.success) {
         toast.success("Dokumen berhasil disimpan!");
         setIsEditing(false);
-        // Panggil loadDocument lagi untuk refresh semua data, termasuk preview
-        await loadDocument();
+        await loadDocument(logoDataUrl);
       } else {
         toast.error("Gagal menyimpan dokumen.");
       }
@@ -268,6 +396,7 @@ ${contentFromEditor}
     }
   };
 
+  // ... (rest of the functions: regeneratePDF, updateStatus, getStatusColor, etc. remain the same)
   const regeneratePDF = async () => {
     if (!id) return;
 
@@ -284,7 +413,7 @@ ${contentFromEditor}
         );
 
         // Reload document to get updated file path
-        await loadDocument();
+        await loadDocument(logoDataUrl);
       } else {
         toast.dismiss();
         toast.error("Gagal regenerate PDF");
@@ -420,7 +549,7 @@ ${contentFromEditor}
             {document.filePath && (
               <>
                 <a
-                  href={document.filePath}
+                  href={document.filePath.replace(".pdf", ".html")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-primary inline-flex items-center"
@@ -429,10 +558,10 @@ ${contentFromEditor}
                   Preview Dokumen
                 </a>
                 <a
-                  href={document.filePath.replace(".html", ".pdf")}
+                  href={document.filePath}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-secondary inline-flex items-center"
+                  className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download PDF
@@ -448,35 +577,6 @@ ${contentFromEditor}
               {isEditing ? "Selesai Edit" : "Edit Dokumen"}
             </button>
 
-            {document.status !== "signed" && (
-              <button
-                onClick={() => setShowSignatureModal(true)}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Tanda Tangan
-              </button>
-            )}
-
-            <button
-              onClick={regeneratePDF}
-              disabled={isSaving}
-              className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center disabled:opacity-50"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {isSaving ? "Updating..." : "Update PDF"}
-            </button>
-
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                toast.success("Link dokumen berhasil disalin");
-              }}
-              className="btn-secondary inline-flex items-center"
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </button>
           </div>
         </div>
 
@@ -486,9 +586,12 @@ ${contentFromEditor}
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Edit Dokumen
             </h2>
-            <DocumentEditorMonaco
-              content={documentContent}
-              onSave={saveDocumentContent}
+            <DocumentEditorTinyMCE
+              editableContent={documentContent}
+              documentStyles={documentStyles}
+              onContentChange={(newContent) => setDocumentContent(newContent)}
+              onSave={() => saveDocumentContent(documentContent)}
+              isLoading={isSaving}
             />
           </div>
         )}
@@ -562,6 +665,9 @@ ${contentFromEditor}
                     {documentData.services?.map(
                       (service: any, index: number) => (
                         <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                            {index + 1}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {service.serviceName}
                           </td>
@@ -656,7 +762,11 @@ ${contentFromEditor}
 
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <iframe
+<<<<<<< HEAD
+                    key={document.updatedAt} // Re-render iframe when document is updated
+=======
                     // src={document.filePath.replace(".pdf", ".html")}
+>>>>>>> 53fc925c6bab88d36199673c9c410a3fb2dceaf9
                     srcDoc={(document as any).content || ""}
                     className="w-full h-96"
                     title="Document Preview"
@@ -686,67 +796,6 @@ ${contentFromEditor}
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Signature Modal */}
-        {showSignatureModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Tanda Tangan Digital
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Penandatangan
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="Masukkan nama penandatangan"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Jabatan
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="Masukkan jabatan"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Upload Tanda Tangan (opsional)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowSignatureModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={() => {
-                    updateStatus("signed");
-                    setShowSignatureModal(false);
-                    toast.success("Dokumen berhasil ditandatangani");
-                  }}
-                  className="btn-primary"
-                >
-                  Tanda Tangan
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
