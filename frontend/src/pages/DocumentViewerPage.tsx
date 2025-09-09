@@ -525,7 +525,7 @@ ${contentFromEditor}
             {document.filePath && (
               <>
                 <a
-                  href={document.filePath}
+                  href={document.filePath.replace(".pdf", ".html")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-primary inline-flex items-center"
@@ -534,10 +534,10 @@ ${contentFromEditor}
                   Preview Dokumen
                 </a>
                 <a
-                  href={document.filePath.replace(".html", ".pdf")}
+                  href={document.filePath}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-secondary inline-flex items-center"
+                  className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download PDF
@@ -553,25 +553,6 @@ ${contentFromEditor}
               {isEditing ? "Selesai Edit" : "Edit Dokumen"}
             </button>
 
-            <button
-              onClick={regeneratePDF}
-              disabled={isSaving}
-              className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 inline-flex items-center disabled:opacity-50"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {isSaving ? "Updating..." : "Update PDF"}
-            </button>
-
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                toast.success("Link dokumen berhasil disalin");
-              }}
-              className="btn-secondary inline-flex items-center"
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </button>
           </div>
         </div>
 
