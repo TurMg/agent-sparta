@@ -6,6 +6,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { generateSPHDocument } from './tools/sphGenerator';
 import { validateSPHData } from './tools/sphValidator';
+import { getAllProducts, getProductById, searchProducts } from './tools/productCatalog';
 
 const server = new Server(
   {
@@ -88,6 +89,42 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ['amount']
         }
+      },
+      {
+        name: 'get_all_products',
+        description: 'Get all products from the product catalog',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'get_product_by_id',
+        description: 'Get a specific product by its ID',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Product ID'
+            }
+          },
+          required: ['id']
+        }
+      },
+      {
+        name: 'search_products',
+        description: 'Search products by name or description',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            query: {
+              type: 'string',
+              description: 'Search query'
+            }
+          },
+          required: ['query']
+        }
       }
     ]
   };
@@ -128,6 +165,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: formatted
+            }
+          ]
+        };
+
+      case 'get_all_products':
+        const products = await getAllProducts();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(products, null, 2)
+            }
+          ]
+        };
+
+      case 'get_product_by_id':
+        const product = await getProductById((args as any)?.id);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(product, null, 2)
+            }
+          ]
+        };
+
+      case 'search_products':
+        const searchResults = await searchProducts((args as any)?.query);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(searchResults, null, 2)
             }
           ]
         };

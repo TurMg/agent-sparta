@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { APIResponse } from '@/types';
+import { APIResponse, Product } from '@/types';
 
 const API_BASE_URL = '/api';
 
@@ -78,6 +78,17 @@ export const aiAPI = {
   
   sendMessage: (sessionId: string, message: string) =>
     api.post<APIResponse>('/ai/chat', { sessionId, message }),
+};
+
+// Products API
+export const productsAPI = {
+  getAllProducts: () => api.get<APIResponse<Product[]>>('/products'),
+  getProductById: (id: string) => api.get<APIResponse<Product>>(`/products/${id}`),
+  createProduct: (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) =>
+    api.post<APIResponse<Product>>('/products', data),
+  updateProduct: (id: string, data: Partial<Omit<Product, 'id' | 'createdAt' | 'updatedAt'>>) =>
+    api.patch<APIResponse<Product>>(`/products/${id}`, data),
+  deleteProduct: (id: string) => api.delete<APIResponse>(`/products/${id}`),
 };
 
 export default api;
