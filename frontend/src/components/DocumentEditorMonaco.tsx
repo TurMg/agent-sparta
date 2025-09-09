@@ -23,7 +23,7 @@ export default function DocumentEditorMonaco({
   const [signatureName, setSignatureName] = useState("");
   const [signatureTitle, setSignatureTitle] = useState("");
   const [showSignaturePad, setShowSignaturePad] = useState(false);
-  const [addedSignatures, setAddedSignatures] = useState<SignatureData[]>([]);
+  const [addedSignatures] = useState<SignatureData[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewHtml, setPreviewHtml] = useState(""); // State untuk konten srcDoc iframe

@@ -12,6 +12,8 @@ import ChatPage from '@/pages/ChatPage';
 import DocumentsPage from '@/pages/DocumentsPage';
 import DocumentViewerPage from '@/pages/DocumentViewerPage';
 import ProductsPage from '@/pages/ProductsPage';
+import WhatsAppPage from '@/pages/WhatsAppPage';
+import WhatsAppAdminPage from '@/pages/WhatsAppAdminPage';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
           <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
           <Route path="/documents/:id" element={<ProtectedRoute><DocumentViewerPage /></ProtectedRoute>} />
           <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+          <Route path="/whatsapp" element={<ProtectedRoute><WhatsAppPage /></ProtectedRoute>} />
+          <Route path="/whatsapp-admin" element={<ProtectedRoute><WhatsAppAdminPage /></ProtectedRoute>} />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -8,6 +8,7 @@ import authRoutes from './routes/auth';
 import documentRoutes from './routes/documents';
 import aiRoutes from './routes/ai';
 import productRoutes from './routes/products';
+import whatsappRoutes from './routes/whatsapp';
 import { initDatabase, closeConnection } from './database/init';
 import { errorHandler } from './middleware/errorHandler';
 import { startMCPServer } from './mcp/server';
@@ -59,6 +60,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+
 
 // Health check
 app.get('/api/health', (req, res) => {

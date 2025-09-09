@@ -68,3 +68,5 @@ echo ""
 echo "👤 Default admin account:"
 echo "- Username: admin"
 echo "- Password: admin123"
+
+

@@ -633,3 +633,6 @@ Harap berikan jawaban yang informatif dan akurat berdasarkan daftar produk yang 
 }
 
 export default router;
+
+// Export AI processor for backend integrations (e.g., WhatsApp)
+export { processAIMessage };

@@ -125,3 +125,5 @@ export function sanitizeSPHData(data: SPHData): SPHData {
     attachments: data.attachments?.filter(att => att && att.trim().length > 0) || []
   };
 }
+
+
