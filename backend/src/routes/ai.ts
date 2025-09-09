@@ -422,17 +422,17 @@ PESAN PENGGUNA UNTUK DIANALISIS :"${message}"
               );
 
               return {
-                content: `✅ **SPH berhasil dibuat!**
+                content: `✅ SPH berhasil dibuat!
 
-**Detail SPH:**
+Detail SPH:
 - Pelanggan: ${extractedData.customerName}
 - Tanggal: ${extractedData.sphDate}
 - Jumlah layanan: ${extractedData.services.length}
 
-📄 **Link Dokumen:**
-🔍 **Lihat & Edit**: http://localhost:3000/documents/${documentId}
-📥 **Download PDF**: http://localhost:3001${result.pdfPath}
-🌐 **Preview HTML**: http://localhost:3001${result.htmlPath}
+📄 Link Dokumen:
+🔍 Lihat & Edit: http://localhost:3000/documents/${documentId}
+📥 Download PDF: http://localhost:3001${result.pdfPath}
+🌐 Preview HTML: http://localhost:3001${result.htmlPath}
 
 Klik link di atas untuk melihat, mengedit, atau mengunduh dokumen SPH.`,
                 metadata: {

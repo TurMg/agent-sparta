@@ -29,7 +29,6 @@ const DocumentViewerPage: React.FC = () => {
   const [documentContent, setDocumentContent] = useState<string>("");
   const [previewKey, setPreviewKey] = useState(0);
 
-
   const documentStyles = `
     body {
         font-family: Arial, sans-serif;
@@ -222,7 +221,6 @@ const DocumentViewerPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-
 
   const generateEditableContent = () => {
     if (!documentData) return "<p>Loading document content...</p>";
@@ -662,6 +660,9 @@ ${contentFromEditor}
                     {documentData.services?.map(
                       (service: any, index: number) => (
                         <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                            {index + 1}
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {service.serviceName}
                           </td>
@@ -789,7 +790,6 @@ ${contentFromEditor}
             )}
           </div>
         )}
-
       </div>
     </Layout>
   );
